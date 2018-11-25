@@ -1,7 +1,7 @@
 clear all;
 close all;
 
-R = 3; %min. distance of aviodance
+R = 5; %min. distance of aviodance
 h = 0.2; %sampling time
 T = 10; %total flight time for each vehicle
 u_max = 50; %max acceleration per vehicle
@@ -62,8 +62,8 @@ eps = 1e-4;
 fold = U'*U; fnew = 0;
 cvx_status = "Infeasible";
 noncvxCons = 0;
-maxiter = 15;
-iter = 0;
+maxiter = 20;
+iter = 1;
 while abs(fold-fnew) > eps && noncvxCons == 0 && iter < maxiter
 
     fold = U'*U;
@@ -95,12 +95,31 @@ cvx_begin quiet %obtain intitial solution
 cvx_end
 
     fnew = U'*U;
-    noncvxCons = check_position(xq,yq,R,N,K);
+    [noncvxCons, sum] = check_position(xq,yq,R,N,K);
+    violated_cons = nchoosek(N,2)*K-sum;
+    num_vehicles = N;
+    num_states = K;
+    avoidance_radius = R;
    if isnan(fnew)
-       disp('Solution will not converge.')
+       disp('Solution will not converge. Retry with new problem parameters.')
        break
    end
-iter = iter+1;
+   
+iter = iter+1;   
+   if iter == maxiter
+       disp("Solution did not converge within max. number of iterations.")
+       t = table(fnew,violated_cons,num_vehicles,num_states,...
+           avoidance_radius,iter)
+   elseif abs(fold-fnew) < eps
+       disp("Solution converged to within function tolerance.")
+       t = table(fnew,violated_cons,num_vehicles,num_states,...
+           avoidance_radius,iter)
+   elseif noncvxCons == 1
+       disp("Solution converged to within nonconvex constraint tolerance.")
+       t = table(fnew,violated_cons,num_vehicles,num_states,...
+           avoidance_radius,iter)
+   end
+
 end
 
 x = xq;
