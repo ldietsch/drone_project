@@ -3,7 +3,7 @@ close all;
 
 R = 3; %min. distance of aviodance
 h = 0.2; %sampling time
-T = 20; %total flight time for each vehicle
+T = 10; %total flight time for each vehicle
 u_max = 50; %max acceleration per vehicle
 N = 3; % number of vehicles
 K = T/h+1; % number of states
@@ -62,9 +62,9 @@ eps = 1e-4;
 fold = U'*U; fnew = 0;
 cvx_status = "Infeasible";
 noncvxCons = 0;
-
+maxiter = 15;
 iter = 0;
-while cvx_status == "Infeasible" && abs(fold-fnew) > eps && noncvxCons == 0
+while abs(fold-fnew) > eps && noncvxCons == 0 && iter < maxiter
 
     fold = U'*U;
     
