@@ -6,7 +6,7 @@ py = reshape(py,N,K);
 for i=1:N
     for j=1:N
         for k = 1:K
-            if i~=j
+            if i~=j && i < j
                 eta = ([xq(i,k);yq(i,k)]-[xq(j,k);yq(j,k)])./...
                     sqrt((xq(i,k)-xq(j,k))^2+(yq(i,k)-yq(j,k))^2);
                 p(i,k) = sqrt((xq(i,k)-xq(j,k))^2+(yq(i,k)-yq(j,k))^2)+...
