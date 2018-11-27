@@ -1,9 +1,9 @@
 clear all;
 close all;
 
-R = 4; %min. distance of aviodance
-h = 0.2; %sampling time
-T = 10; %total flight time for each vehicle
+R = 3.0; %min. distance of aviodance
+h = 0.1; %sampling time
+T = 5; %total flight time for each vehicle
 u_max = 50; %max acceleration per vehicle
 N = 3; % number of vehicles
 K = T/h+1; % number of states
