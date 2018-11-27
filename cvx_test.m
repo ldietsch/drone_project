@@ -1,10 +1,12 @@
 clear all;
 close all;
 
-R = 3.0; %min. distance of aviodance
-h = 0.1; %sampling time
-T = 5; %total flight time for each vehicle
-u_max = 50; %max acceleration per vehicle
+R = 1.0; %min. distance of aviodance
+h = 0.2; %sampling time
+T = 10; %total flight time for each vehicle
+%vehicle parameters taken from Ardakani, et. al "Online Minimum-Jerk
+%Trajectory Generation" p. 7 figure 4
+u_max = 30; %max acceleration per vehicle
 N = 3; % number of vehicles
 K = T/h+1; % number of states
 n_var = 2*K; %need twice the number of states for 2-D
@@ -12,12 +14,12 @@ u_d_min(1:N*n_var,1) = -sqrt(u_max^2/2); %better way to interpret this from
 %the paper? Doesn't necessarily seem right, but can't be wrong...
 u_d_max(1:N*n_var,1) = sqrt(u_max^2/2);
 jerk = zeros(N*n_var,1); %initialize jerk
-j_max = 100;
+j_max = 200;
 j_d_min(1:N*(K-1),1) = -sqrt(j_max^2/2);
 j_d_max(1:N*(K-1),1) = sqrt(j_max^2/2);
-p_max_x(1:N*K,1) = 150;
+p_max_x(1:N*K,1) = 10;
 p_min_x(1:N*K,1) = 0;
-p_max_y(1:N*K,1) = 150;
+p_max_y(1:N*K,1) = 10;
 p_min_y(1:N*K,1) = 0;
 [x0, xf]= setStartAndEndPts(N);
 v0 = zeros(N,2);
@@ -31,7 +33,17 @@ cvx_begin quiet %obtain intitial solution
     j_d_min <= jerk_y(U,h,N,K,n_var) <= j_d_max
     %constraints (bounds) for acceleration   
     u_d_min <= U <= u_d_max 
-    %no velocity constraints
+    Ux = U(1:2:N*n_var-1);
+    Ux = reshape(Ux,N,K);
+    Uy = U(2:2:N*n_var);
+    Uy = reshape(Uy,N,K);
+    for i = 1:N
+       Ux(i,K) == 0;
+       Uy(i,K) == 0;
+    end
+    %velocity constraints
+    vel_x_final(v0,U,h,N,n_var,K) == 0;
+    vel_y_final(v0,U,h,N,n_var,K) == 0;
     %constraints for position (inequality)
     p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
     p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
@@ -64,11 +76,11 @@ cvx_status = "Infeasible";
 noncvxCons = 0;
 maxiter = 20;
 iter = 1;
-while abs(fold-fnew) > eps && noncvxCons == 0 && iter < maxiter
+while abs(fold-fnew) > eps && noncvxCons == 0 && iter < maxiter && cvx_status ~= "Solved"
 
     fold = U'*U;
     
-cvx_begin quiet %obtain intitial solution
+cvx_begin quiet
     variable U(N*n_var) %every n_var is a different vehicle
     minimize( U'*U )
     subject to
@@ -77,7 +89,17 @@ cvx_begin quiet %obtain intitial solution
     j_d_min <= jerk_y(U,h,N,K,n_var) <= j_d_max
     %constraints (bounds) for acceleration   
     u_d_min <= U <= u_d_max 
-    %no velocity constraints
+    Ux = U(1:2:N*n_var-1);
+    Ux = reshape(Ux,N,K);
+    Uy = U(2:2:N*n_var);
+    Uy = reshape(Uy,N,K);
+    for i = 1:N
+       Ux(i,K) == 0;
+       Uy(i,K) == 0;
+    end
+    %velocity constraints
+    vel_x_final(v0,U,h,N,n_var,K) == 0;
+    vel_y_final(v0,U,h,N,n_var,K) == 0;
     %constraints for position (inequality)
     p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
     p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
@@ -96,7 +118,7 @@ cvx_end
 
     fnew = U'*U;
     [noncvxCons, sum] = check_position(xq,yq,R,N,K);
-    violated_cons = nchoosek(N,2)*K-sum;
+    violated_noncvx_cons = nchoosek(N,2)*K-sum;
     num_vehicles = N;
     num_states = K;
     avoidance_radius = R;
@@ -108,19 +130,26 @@ cvx_end
 iter = iter+1;   
    if iter == maxiter
        disp("Solution did not converge within max. number of iterations.")
-       t = table(fnew,violated_cons,num_vehicles,num_states,...
+       t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
            avoidance_radius,iter)
    elseif abs(fold-fnew) < eps
        disp("Solution converged to within function tolerance.")
-       t = table(fnew,violated_cons,num_vehicles,num_states,...
+       t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
            avoidance_radius,iter)
    elseif noncvxCons == 1
        disp("Solution converged to within nonconvex constraint tolerance.")
-       t = table(fnew,violated_cons,num_vehicles,num_states,...
+       t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
            avoidance_radius,iter)
+   elseif cvx_status == "Solved"
+       disp("Solution converged to an optimal solution.")
+       t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
+           avoidance_radius,iter)       
    end
 
 end
+
+vx = vel_x(v0,U,h,N,n_var,K);
+vy = vel_y(v0,U,h,N,n_var,K);
 
 x = xq;
 y = yq;
