@@ -7,7 +7,8 @@ function [start_pts,end_pts] = setStartAndEndPts(n)
         end_pts(ii,:)   = center_pt - R*[cos(theta),sin(theta)];
         theta = theta + dtheta;
     end
-    
-    lims = [min(center_pt)-R-10,max(center_pt)+R+10];
-    xlim(lims);ylim(lims);
+    gcf
+    hold on; grid on; box on;
+    lims = [min(center_pt)-R-5,max(center_pt)+R+5];
+    xlim(lims); ylim(lims);
 end

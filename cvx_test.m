@@ -1,172 +1,211 @@
-clear all;
-close all;
+clear all
+close all
+% AAE 561: Final Project 
+% Conflict-free trajectories for quadrotors
+% Dietsche, Lee and Sudarsanan
 
-R = 1.0; %min. distance of aviodance
-h = 0.1; %sampling time
-T = 3; %total flight time for each vehicle
-%vehicle parameters based on paper by Ardakani, et. al "Online Minimum-Jerk
-%Trajectory Generation" p. 7 figure 4
-u_max = 35; %max acceleration per vehicle
-N = 3; % number of vehicles
-K = T/h+1; % number of states
-n_var = 2*K; %need twice the number of states for 2-D
-j_max = 200; % max jerk per vehicle
-p_max_x(1:N*K,1) = 10; %define the space allowed to fly in (rectangle)
-p_min_x(1:N*K,1) = 0; %define the space allowed to fly in
-p_max_y(1:N*K,1) = 10;%define the space allowed to fly in
-p_min_y(1:N*K,1) = 0; %define the space allowed to fly in
-[x0, xf]= setStartAndEndPts(N); %set the start and points for each vehicle
-v0 = zeros(N,2); %set initial velocity to zero for each vehicle
-
-%obtain intitial solution to be used for the first approximation of the
-%avoidance constraints. Here, there are no avoidance constraints.
-cvx_begin quiet 
-    variable U(N*n_var) %every n_var is a different vehicle
-    minimize( U'*U )
-    subject to
-    %constraints (bounds) for jerk
-    expressions Jx Jy
-    Jx = jerk_x(U,h,N,K,n_var);
-    Jy = jerk_y(U,h,N,K,n_var);
-    obtain_jerk(Jx,Jy,N,K) <= j_max
-    %constraints (bounds) for acceleration   
-    Ux = U(1:2:N*n_var-1);
-    Ux = reshape(Ux,N,K);
-    Uy = U(2:2:N*n_var);
-    Uy = reshape(Uy,N,K);
-    obtain_U(Ux,Uy,N,K) <= u_max 
-    for i = 1:N
-       Ux(i,K) == 0;
-       Uy(i,K) == 0;
-    end
-    %velocity constraints
-    vel_x_final(v0,U,h,N,n_var,K) == 0;
-    vel_y_final(v0,U,h,N,n_var,K) == 0;
-    %constraints for position (inequality)
-    p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
-    p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
-    %constraints for position (equality)
-    target_pos_x(x0,v0,U,h,N,n_var,K) == xf(:,1)
-    target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
-cvx_end
-
-% Obtain initial trajectories
-xq = recover_x(x0,v0,U,h,N,n_var,K);
-xq = reshape(xq,N,K);
-yq = recover_y(x0,v0,U,h,N,n_var,K);
-yq = reshape(yq,N,K);
-x = xq;
-y = yq;
-% Plot initial trajectories (no avoidance)
-figure(1)
-for i = 1:N
-    plot(x(i,:),y(i,:),'--')
-    hold on
-end
-for i = 1:N
-    plot(x0(i,1),x0(i,2),'mp')
-end
-title('Conflict-free trajectories in 2-D')
-xlabel('x [m]')
-ylabel('y [m]')
-
-eps = 1e-4;
-fold = U'*U; fnew = 0;
-cvx_status = "Infeasible";
-noncvxCons = 0;
-maxiter = 20;
-iter = 1;
-% the main loop for enforcing avoidance constraints using the linear
-% approximation formulated by Augugliaro
-while abs(fold-fnew) > eps && noncvxCons == 0 && iter < maxiter && cvx_status ~= "Solved"
-
-    fold = U'*U;
+N_Quads = 7;       % Number of vehicles
+simTime = zeros(1,N_Quads-1);
+for N=2:N_Quads
+    figure(N-1);
     
-cvx_begin quiet
-    variable U(N*n_var) %every n_var is a different vehicle
-    minimize( U'*U )
-    subject to
-    %constraints (bounds) for jerk
-    expressions Jx Jy
-    Jx = jerk_x(U,h,N,K,n_var);
-    Jy = jerk_y(U,h,N,K,n_var);
-    obtain_jerk(Jx,Jy,N,K) <= j_max
-    %constraints (bounds) for acceleration   
-    Ux = U(1:2:N*n_var-1);
-    Ux = reshape(Ux,N,K);
-    Uy = U(2:2:N*n_var);
-    Uy = reshape(Uy,N,K);
-    obtain_U(Ux,Uy,N,K) <= u_max 
-    for i = 1:N
-       Ux(i,K) == 0;
-       Uy(i,K) == 0;
-    end
-    %velocity constraints
-    vel_x_final(v0,U,h,N,n_var,K) == 0;
-    vel_y_final(v0,U,h,N,n_var,K) == 0;
-    %constraints for position (inequality)
-    p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
-    p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
-    %constraints for position (equality)
-    target_pos_x(x0,v0,U,h,N,n_var,K) == xf(:,1)
-    target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
-    %constraints for position (inequality / avoidance)
-    avoidance(xq,yq,x0,v0,U,h,N,n_var,K) >= R
-    expressions xq(N*K) yq(N*K)
-    xq = pos_x(x0,v0,U,h,N,n_var,K);
+    t_start = tic;
+
+    R = 1.0; % Min. distance of aviodance
+    h = 0.1; % Sampling time
+    T = 3;   % Total flight time for each vehicle
+
+    % Vehicle parameters based on paper by Ardakani, et. al "Online Minimum-Jerk
+    % Trajectory Generation" p. 7 figure 4
+
+    u_max = 35;  % Max acceleration per vehicle
+    K = T/h+1;   % Number of states
+    n_var = 2*K; % Need twice the number of states for 2-D
+    j_max = 200; % Max jerk per vehicle
+
+    p_max_x(1:N*K,1) = 10; % Define the space allowed to fly in (rectangle)
+    p_min_x(1:N*K,1) = 0;  % Define the space allowed to fly in
+    p_max_y(1:N*K,1) = 10; % Define the space allowed to fly in
+    p_min_y(1:N*K,1) = 0;  % Define the space allowed to fly in
+
+    [x0, xf]= setStartAndEndPts(N); % Set the start and points for each vehicle
+    v0 = zeros(N,2);                % Set initial velocity to zero for each vehicle
+
+    % Obtain intitial solution to be used for the first approximation of the
+    % avoidance constraints. Here, there are no avoidance constraints.
+    cvx_begin quiet 
+        variable U(N*n_var) % Every n_var is a different vehicle
+        minimize( U'*U )
+        subject to
+        % Constraints (bounds) for jerk
+        expressions Jx Jy
+        Jx = jerk_x(U,h,N,K,n_var);
+        Jy = jerk_y(U,h,N,K,n_var);
+        obtain_jerk(Jx,Jy,N,K) <= j_max
+        % Constraints (bounds) for acceleration   
+        Ux = U(1:2:N*n_var-1);
+        Ux = reshape(Ux,N,K);
+        Uy = U(2:2:N*n_var);
+        Uy = reshape(Uy,N,K);
+        obtain_U(Ux,Uy,N,K) <= u_max 
+        for i = 1:N
+           Ux(i,K) == 0;
+           Uy(i,K) == 0;
+        end
+        % Velocity constraints
+        vel_x_final(v0,U,h,N,n_var,K) == 0;
+        vel_y_final(v0,U,h,N,n_var,K) == 0;
+        % Constraints for position (inequality)
+        p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
+        p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
+        % Constraints for position (equality)
+        target_pos_x(x0,v0,U,h,N,n_var,K) == xf(:,1)
+        target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
+    cvx_end
+
+    % Obtain initial trajectories
+    xq = recover_x(x0,v0,U,h,N,n_var,K);
     xq = reshape(xq,N,K);
-    yq = pos_y(x0,v0,U,h,N,n_var,K);
+    yq = recover_y(x0,v0,U,h,N,n_var,K);
     yq = reshape(yq,N,K);
-cvx_end
+    x = xq;
+    y = yq;
 
-    fnew = U'*U;
-    [noncvxCons, sum] = check_position(xq,yq,R,N,K);
-    violated_noncvx_cons = nchoosek(N,2)*K-sum;
-    num_vehicles = N;
-    num_states = K;
-    avoidance_radius = R;
-    % If the objective function is NaN, it means the solution will never
-    % converge.
-   if isnan(fnew)
-       disp('Solution will not converge. Retry with new problem parameters.')
-       break
-   end
-   
-iter = iter+1;   
-% Output convergence information in the command window.
-   if iter == maxiter
-       disp("Solution did not converge within max. number of iterations.")
-       t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
-           avoidance_radius,iter)
-   elseif abs(fold-fnew) < eps
-       disp("Solution converged to within function tolerance.")
-       t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
-           avoidance_radius,iter)
-   elseif noncvxCons == 1
-       disp("Solution converged to within nonconvex constraint tolerance.")
-       t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
-           avoidance_radius,iter)
-   elseif cvx_status == "Solved"
-       disp("Solution converged to an optimal solution.")
-       t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
-           avoidance_radius,iter)       
-   end
+    % Pause simulation time calculation while plotting
+    simTime(N-1) = simTime(N-1) + tic - t_start;
 
+    % Plot initial trajectories (no avoidance)
+    color_palette = {};
+    for i = 1:N
+        p_hand = plot(x(i,:),y(i,:),'LineStyle','--','LineWidth',2);
+        color_palette{i} = p_hand.Color;
+        plot(x0(i,1),x0(i,2),'^','MarkerSize',6,'MarkerEdgeColor',p_hand.Color,...
+                                                 'MarkerFaceColor',p_hand.Color);
+        plot(xf(i,1),xf(i,2),'p','MarkerSize',8,'MarkerEdgeColor',p_hand.Color,...
+                                                 'MarkerFaceColor',p_hand.Color);
+    end
+    title("Initial trajectories in 2-D ["+N+" Quads]")
+    xlabel('x [m]')
+    ylabel('y [m]')
+    drawnow
+
+    % Resume simulation time logging
+    t_start = tic;
+
+    eps = 1e-4;
+    fold = U'*U; fnew = 0;
+    cvx_status = "Infeasible";
+    noncvxCons = 0;
+    maxiter = 20;
+    iter = 1;
+
+    % The main loop for enforcing avoidance constraints using the linear
+    % approximation formulated by Augugliaro
+    while abs(fold-fnew) > eps && noncvxCons == 0 && iter < maxiter && cvx_status ~= "Solved"
+
+        fold = U'*U;
+
+    cvx_begin quiet
+        variable U(N*n_var) % Every n_var is a different vehicle
+        minimize( U'*U )
+        subject to
+        % Constraints (bounds) for jerk
+        expressions Jx Jy
+        Jx = jerk_x(U,h,N,K,n_var);
+        Jy = jerk_y(U,h,N,K,n_var);
+        obtain_jerk(Jx,Jy,N,K) <= j_max
+        % Constraints (bounds) for acceleration   
+        Ux = U(1:2:N*n_var-1);
+        Ux = reshape(Ux,N,K);
+        Uy = U(2:2:N*n_var);
+        Uy = reshape(Uy,N,K);
+        obtain_U(Ux,Uy,N,K) <= u_max 
+        for i = 1:N
+           Ux(i,K) == 0;
+           Uy(i,K) == 0;
+        end
+        % Velocity constraints
+        vel_x_final(v0,U,h,N,n_var,K) == 0;
+        vel_y_final(v0,U,h,N,n_var,K) == 0;
+        % Constraints for position (inequality)
+        p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
+        p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
+        % Constraints for position (equality)
+        target_pos_x(x0,v0,U,h,N,n_var,K) == xf(:,1)
+        target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
+        % Constraints for position (inequality / avoidance)
+        avoidance(xq,yq,x0,v0,U,h,N,n_var,K) >= R
+        expressions xq(N*K) yq(N*K)
+        xq = pos_x(x0,v0,U,h,N,n_var,K);
+        xq = reshape(xq,N,K);
+        yq = pos_y(x0,v0,U,h,N,n_var,K);
+        yq = reshape(yq,N,K);
+    cvx_end
+
+        fnew = U'*U;
+        [noncvxCons, sum] = check_position(xq,yq,R,N,K);
+        violated_noncvx_cons = nchoosek(N,2)*K-sum;
+        num_vehicles = N;
+        num_states = K;
+        avoidance_radius = R;
+        % If the objective function is NaN, it means the solution will never
+        % converge.
+       if isnan(fnew)
+           disp('Solution will not converge. Retry with new problem parameters.')
+           break
+       end
+
+    iter = iter+1;   
+    % Output convergence information in the command window.
+       if iter == maxiter
+           disp("Solution did not converge within max. number of iterations.")
+           t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
+               avoidance_radius,iter)
+       elseif abs(fold-fnew) < eps
+           disp("Solution converged to within function tolerance.")
+           t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
+               avoidance_radius,iter)
+       elseif noncvxCons == 1
+           disp("Solution converged to within nonconvex constraint tolerance.")
+           t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
+               avoidance_radius,iter)
+       elseif cvx_status == "Solved"
+           disp("Solution converged to an optimal solution.")
+           t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
+               avoidance_radius,iter)       
+       end
+
+    end
+    % Obtain velocity for each vehicle at each state from U*
+    vx = vel_x(v0,U,h,N,n_var,K);
+    vy = vel_y(v0,U,h,N,n_var,K);
+    % Can use the last computed position from the algorithm for plot
+    x = xq;
+    y = yq;
+
+    simTime(N-1) = simTime(N-1) + tic - t_start;
+
+    % Plot solved trajectories
+    figure(N-1)
+    for i = 1:N
+        plot(x(i,:),y(i,:),'LineStyle','-','LineWidth',2,'Color',color_palette{i})
+        hold on
+    end
+
+    % Pseudo plots to show the legends for start and point
+    start_hand = plot(10000,10000,'k^','MarkerSize',6);
+    end_hand   = plot(10000,10000,'kp','MarkerSize',8);
+    legend([start_hand,end_hand],{'Start Point','End Point'});
+
+    title("Conflict-free trajectories in 2-D, N = "+N+", R = "+R+" [m]")
+    xlabel('x [m]')
+    ylabel('y [m]')
+
+    disp("Computation Time [N = "+N+"]: " + double(simTime(N-1))/10^6 + " seconds");
 end
-%obtain velocity for each vehicle at each state from U*
-vx = vel_x(v0,U,h,N,n_var,K);
-vy = vel_y(v0,U,h,N,n_var,K);
-% can use the last computed position from the algorithm for plot
-x = xq;
-y = yq;
-% plot solved trajectories
-figure(1)
-for i = 1:N
-    plot(x(i,:),y(i,:),'.')
-    hold on
-end
-hold off
-title("Conflict-free trajectories in 2-D, R = "+R+" [m]")
-xlabel('x [m]')
-ylabel('y [m]')
-
+figure('Name','Computational Time')
+hold on; grid on; box on;
+plot(2:1:N_Quads,double(simTime)/10^6,'bo-');
+set(gca,'XTick',[2:1:N_Quads]);
+xlabel('Number of quadrotors');
+ylabel('Computational Time using CVX solver [s]');
