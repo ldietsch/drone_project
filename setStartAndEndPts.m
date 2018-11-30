@@ -1,7 +1,7 @@
-function [start_pts,end_pts] = setStartAndEndPts(n)
-    center_pt = [5,5];
-    R         = 5;
-    theta = 0; dtheta = pi/3;
+function [start_pts,end_pts] = setStartAndEndPts(diam,n)    
+    R         = diam/2;
+    center_pt = [5,5] + R;
+    theta = 0; dtheta = pi/n;
     for ii=1:n
         start_pts(ii,:) = center_pt + R*[cos(theta),sin(theta)];
         end_pts(ii,:)   = center_pt - R*[cos(theta),sin(theta)];

@@ -5,30 +5,36 @@ close all
 % Dietsche, Lee and Sudarsanan
 
 N_Quads = 7;       % Number of vehicles
-simTime = zeros(1,N_Quads-1);
+dStartEnd = 20;    % Distance between start and end points for quadrotors
+simTime  = zeros(1,N_Quads-1);
+solnStat = cell(1,N_Quads-1);
+solnTables = cell(1,N_Quads-1);
 for N=2:N_Quads
     figure(N-1);
+    [x0, xf]= setStartAndEndPts(dStartEnd,N); % Set the start and points for each vehicle
+    
+    % Vehicle parameters based on paper by Ardakani, et. al "Online Minimum-Jerk
+    % Trajectory Generation" p. 7 figure 4
+    u_max = 35;  % [m/s^2] Max acceleration per vehicle
+    j_max = 200; % [m/s^3] Max jerk per vehicle    
     
     t_start = tic;
 
-    R = 1.0; % Min. distance of aviodance
-    h = 0.1; % Sampling time
-    T = 3;   % Total flight time for each vehicle
-
-    % Vehicle parameters based on paper by Ardakani, et. al "Online Minimum-Jerk
-    % Trajectory Generation" p. 7 figure 4
-
-    u_max = 35;  % Max acceleration per vehicle
-    K = T/h+1;   % Number of states
+    R = 1.0; % [m] Min. distance of aviodance
+    h = 0.1; % [s] Sampling time
+%     T = 3;   % [s] Total flight time for each vehicle
+    % Estimate flight time
+    T = estimateFlightTime(dStartEnd,u_max); % Assumes distance traveled same for all quads
+    K = ceil(T/h)+1;   % Number of states
     n_var = 2*K; % Need twice the number of states for 2-D
-    j_max = 200; % Max jerk per vehicle
 
-    p_max_x(1:N*K,1) = 10; % Define the space allowed to fly in (rectangle)
-    p_min_x(1:N*K,1) = 0;  % Define the space allowed to fly in
-    p_max_y(1:N*K,1) = 10; % Define the space allowed to fly in
-    p_min_y(1:N*K,1) = 0;  % Define the space allowed to fly in
 
-    [x0, xf]= setStartAndEndPts(N); % Set the start and points for each vehicle
+    p_max_x(1:N*K,1) = dStartEnd+10; % [m] Define the space allowed to fly in (rectangle)
+    p_min_x(1:N*K,1) = 0;            % [m] Define the space allowed to fly in
+    p_max_y(1:N*K,1) = dStartEnd+10; % [m] Define the space allowed to fly in
+    p_min_y(1:N*K,1) = 0;            % [m] Define the space allowed to fly in
+
+    
     v0 = zeros(N,2);                % Set initial velocity to zero for each vehicle
 
     % Obtain intitial solution to be used for the first approximation of the
@@ -105,42 +111,42 @@ for N=2:N_Quads
 
         fold = U'*U;
 
-    cvx_begin quiet
-        variable U(N*n_var) % Every n_var is a different vehicle
-        minimize( U'*U )
-        subject to
-        % Constraints (bounds) for jerk
-        expressions Jx Jy
-        Jx = jerk_x(U,h,N,K,n_var);
-        Jy = jerk_y(U,h,N,K,n_var);
-        obtain_jerk(Jx,Jy,N,K) <= j_max
-        % Constraints (bounds) for acceleration   
-        Ux = U(1:2:N*n_var-1);
-        Ux = reshape(Ux,N,K);
-        Uy = U(2:2:N*n_var);
-        Uy = reshape(Uy,N,K);
-        obtain_U(Ux,Uy,N,K) <= u_max 
-        for i = 1:N
-           Ux(i,K) == 0;
-           Uy(i,K) == 0;
-        end
-        % Velocity constraints
-        vel_x_final(v0,U,h,N,n_var,K) == 0;
-        vel_y_final(v0,U,h,N,n_var,K) == 0;
-        % Constraints for position (inequality)
-        p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
-        p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
-        % Constraints for position (equality)
-        target_pos_x(x0,v0,U,h,N,n_var,K) == xf(:,1)
-        target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
-        % Constraints for position (inequality / avoidance)
-        avoidance(xq,yq,x0,v0,U,h,N,n_var,K) >= R
-        expressions xq(N*K) yq(N*K)
-        xq = pos_x(x0,v0,U,h,N,n_var,K);
-        xq = reshape(xq,N,K);
-        yq = pos_y(x0,v0,U,h,N,n_var,K);
-        yq = reshape(yq,N,K);
-    cvx_end
+        cvx_begin quiet
+            variable U(N*n_var) % Every n_var is a different vehicle
+            minimize( U'*U )
+            subject to
+            % Constraints (bounds) for jerk
+            expressions Jx Jy
+            Jx = jerk_x(U,h,N,K,n_var);
+            Jy = jerk_y(U,h,N,K,n_var);
+            obtain_jerk(Jx,Jy,N,K) <= j_max
+            % Constraints (bounds) for acceleration   
+            Ux = U(1:2:N*n_var-1);
+            Ux = reshape(Ux,N,K);
+            Uy = U(2:2:N*n_var);
+            Uy = reshape(Uy,N,K);
+            obtain_U(Ux,Uy,N,K) <= u_max 
+            for i = 1:N
+               Ux(i,K) == 0;
+               Uy(i,K) == 0;
+            end
+            % Velocity constraints
+            vel_x_final(v0,U,h,N,n_var,K) == 0;
+            vel_y_final(v0,U,h,N,n_var,K) == 0;
+            % Constraints for position (inequality)
+            p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
+            p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
+            % Constraints for position (equality)
+            target_pos_x(x0,v0,U,h,N,n_var,K) == xf(:,1)
+            target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
+            % Constraints for position (inequality / avoidance)
+            avoidance(xq,yq,x0,v0,U,h,N,n_var,K) >= R
+            expressions xq(N*K) yq(N*K)
+            xq = pos_x(x0,v0,U,h,N,n_var,K);
+            xq = reshape(xq,N,K);
+            yq = pos_y(x0,v0,U,h,N,n_var,K);
+            yq = reshape(yq,N,K);
+        cvx_end
 
         fnew = U'*U;
         [noncvxCons, sum] = check_position(xq,yq,R,N,K);
@@ -150,31 +156,35 @@ for N=2:N_Quads
         avoidance_radius = R;
         % If the objective function is NaN, it means the solution will never
         % converge.
-       if isnan(fnew)
+        if isnan(fnew)
            disp('Solution will not converge. Retry with new problem parameters.')
            break
-       end
-
-    iter = iter+1;   
-    % Output convergence information in the command window.
-       if iter == maxiter
+        end
+        simTime(N-1) = simTime(N-1) + tic - t_start;
+        iter = iter+1;   
+        % Output convergence information in the command window.
+        if iter == maxiter
+           solnStat{N-1} = "Solution did not converge within max. number of iterations.";
            disp("Solution did not converge within max. number of iterations.")
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)
-       elseif abs(fold-fnew) < eps
+        elseif abs(fold-fnew) < eps
+           solnStat{N-1} = "Solution did not converge within max. number of iterations.";
            disp("Solution converged to within function tolerance.")
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)
-       elseif noncvxCons == 1
+        elseif noncvxCons == 1
+           solnStat{N-1} = "Solution did not converge within max. number of iterations.";
            disp("Solution converged to within nonconvex constraint tolerance.")
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)
-       elseif cvx_status == "Solved"
+        elseif cvx_status == "Solved"
+           solnStat{N-1} = "Solution did not converge within max. number of iterations.";
            disp("Solution converged to an optimal solution.")
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)       
-       end
-
+        end
+        solnTables{N-1} = t;
     end
     % Obtain velocity for each vehicle at each state from U*
     vx = vel_x(v0,U,h,N,n_var,K);
@@ -183,10 +193,8 @@ for N=2:N_Quads
     x = xq;
     y = yq;
 
-    simTime(N-1) = simTime(N-1) + tic - t_start;
-
     % Plot solved trajectories
-    figure(N-1)
+    figure(N-1);
     for i = 1:N
         plot(x(i,:),y(i,:),'LineStyle','-','LineWidth',2,'Color',color_palette{i})
         hold on
