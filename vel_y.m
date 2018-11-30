@@ -1,5 +1,9 @@
 function vy = vel_y(v0,U,h,N,n_var,K)
-
+% vel_y takes as inputs v0 - intial velocity, U - acceleration, h -
+% sampling time, N - number of vehicles, n_var - number of design
+% variables, and K - number of states, and computes the velocity in the
+% y-direction for every Nth vehicle and Kth state. This outputs a double to
+% the workspace.
 Uy = U(2:2:N*n_var);
 Uy = reshape(Uy,N,K);
 vy = zeros(N,K);

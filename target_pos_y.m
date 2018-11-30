@@ -1,5 +1,9 @@
 function px = target_pos_y(p0,v0,U,h,N,n_var,K)
-
+% target_pos_y takes as inputs p0 - initial position, 
+% v0 - initial velocity, U - acceleration, h - sampling time, 
+% n_var - number of design variables and computes the final y-coordinate of 
+% position for every Nth vehicle and Kth state for use in targeting the
+% final position, xf, enforced as an equality constraint in cvx.
 Uy = U(2:2:N*n_var);
 Uy = reshape(Uy,N,K);
 for j = 1:N

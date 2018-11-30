@@ -10,15 +10,17 @@ u_max = 35; %max acceleration per vehicle
 N = 3; % number of vehicles
 K = T/h+1; % number of states
 n_var = 2*K; %need twice the number of states for 2-D
-j_max = 200;
-p_max_x(1:N*K,1) = 10;
-p_min_x(1:N*K,1) = 0;
-p_max_y(1:N*K,1) = 10;
-p_min_y(1:N*K,1) = 0;
-[x0, xf]= setStartAndEndPts(N);
-v0 = zeros(N,2);
+j_max = 200; % max jerk per vehicle
+p_max_x(1:N*K,1) = 10; %define the space allowed to fly in (rectangle)
+p_min_x(1:N*K,1) = 0; %define the space allowed to fly in
+p_max_y(1:N*K,1) = 10;%define the space allowed to fly in
+p_min_y(1:N*K,1) = 0; %define the space allowed to fly in
+[x0, xf]= setStartAndEndPts(N); %set the start and points for each vehicle
+v0 = zeros(N,2); %set initial velocity to zero for each vehicle
 
-cvx_begin quiet %obtain intitial solution
+%obtain intitial solution to be used for the first approximation of the
+%avoidance constraints. Here, there are no avoidance constraints.
+cvx_begin quiet 
     variable U(N*n_var) %every n_var is a different vehicle
     minimize( U'*U )
     subject to
@@ -48,12 +50,14 @@ cvx_begin quiet %obtain intitial solution
     target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
 cvx_end
 
+% Obtain initial trajectories
 xq = recover_x(x0,v0,U,h,N,n_var,K);
 xq = reshape(xq,N,K);
 yq = recover_y(x0,v0,U,h,N,n_var,K);
 yq = reshape(yq,N,K);
 x = xq;
 y = yq;
+% Plot initial trajectories (no avoidance)
 figure(1)
 for i = 1:N
     plot(x(i,:),y(i,:),'--')
@@ -72,6 +76,8 @@ cvx_status = "Infeasible";
 noncvxCons = 0;
 maxiter = 20;
 iter = 1;
+% the main loop for enforcing avoidance constraints using the linear
+% approximation formulated by Augugliaro
 while abs(fold-fnew) > eps && noncvxCons == 0 && iter < maxiter && cvx_status ~= "Solved"
 
     fold = U'*U;
@@ -119,12 +125,15 @@ cvx_end
     num_vehicles = N;
     num_states = K;
     avoidance_radius = R;
+    % If the objective function is NaN, it means the solution will never
+    % converge.
    if isnan(fnew)
        disp('Solution will not converge. Retry with new problem parameters.')
        break
    end
    
 iter = iter+1;   
+% Output convergence information in the command window.
    if iter == maxiter
        disp("Solution did not converge within max. number of iterations.")
        t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
@@ -144,12 +153,13 @@ iter = iter+1;
    end
 
 end
-
+%obtain velocity for each vehicle at each state from U*
 vx = vel_x(v0,U,h,N,n_var,K);
 vy = vel_y(v0,U,h,N,n_var,K);
-
+% can use the last computed position from the algorithm for plot
 x = xq;
 y = yq;
+% plot solved trajectories
 figure(1)
 for i = 1:N
     plot(x(i,:),y(i,:),'.')
