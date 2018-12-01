@@ -4,9 +4,9 @@ function [noncvxcons, sum] = check_position(x,y,R,N,K)
 %satified to within a tolerance of eps.
 eps = 1e-4;
 sum = 0;
-for i=1:ceil(N/2)%only need to check the distance between each vehicle once
+for i=1:N-1%only need to check the distance between each vehicle once
     for j=1:K
-        for k = 1:N
+        for k = i+1:N
             if i~=k && i < k
                 %check the distance between ith and kth vehicle at the jth
                 %state

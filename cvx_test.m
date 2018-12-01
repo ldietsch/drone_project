@@ -21,10 +21,10 @@ for N=2:N_Quads
     t_start = tic;
 
     R = 1.0; % [m] Min. distance of aviodance
-    h = 0.1; % [s] Sampling time
-%     T = 3;   % [s] Total flight time for each vehicle
+    h = 0.2; % [s] Sampling time
+    T = 5;   % [s] Total flight time for each vehicle
     % Estimate flight time
-    T = estimateFlightTime(dStartEnd,u_max); % Assumes distance traveled same for all quads
+%     T = estimateFlightTime(dStartEnd,u_max); % Assumes distance traveled same for all quads
     K = ceil(T/h)+1;   % Number of states
     n_var = 2*K; % Need twice the number of states for 2-D
 
@@ -101,14 +101,14 @@ for N=2:N_Quads
     eps = 1e-4;
     fold = U'*U; fnew = 0;
     cvx_status = "Infeasible";
-    noncvxCons = 0;
+    noncvxConsSatisfied = 0;
     maxiter = 20;
     iter = 1;
 
     % The main loop for enforcing avoidance constraints using the linear
     % approximation formulated by Augugliaro
-    while abs(fold-fnew) > eps && noncvxCons == 0 && iter < maxiter && cvx_status ~= "Solved"
-
+%     while abs(fold-fnew) > eps && noncvxConsSatisfied == 0 && iter < maxiter && cvx_status ~= "Solved"
+    while ((abs(fold-fnew) > eps && cvx_status ~= "Solved") || ~noncvxConsSatisfied) && iter < maxiter %&& cvx_status ~= "Solved"
         fold = U'*U;
 
         cvx_begin quiet
@@ -149,7 +149,7 @@ for N=2:N_Quads
         cvx_end
 
         fnew = U'*U;
-        [noncvxCons, sum] = check_position(xq,yq,R,N,K);
+        [noncvxConsSatisfied, sum] = check_position(xq,yq,R,N,K);
         violated_noncvx_cons = nchoosek(N,2)*K-sum;
         num_vehicles = N;
         num_states = K;
@@ -160,32 +160,29 @@ for N=2:N_Quads
            disp('Solution will not converge. Retry with new problem parameters.')
            break
         end
-        simTime(N-1) = simTime(N-1) + tic - t_start;
         iter = iter+1;   
         % Output convergence information in the command window.
         if iter == maxiter
            solnStat{N-1} = "Solution did not converge within max. number of iterations.";
-           disp("Solution did not converge within max. number of iterations.")
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)
-        elseif abs(fold-fnew) < eps
-           solnStat{N-1} = "Solution did not converge within max. number of iterations.";
-           disp("Solution converged to within function tolerance.")
+        elseif abs(fold-fnew) <= eps
+           solnStat{N-1} = "Solution converged to within function tolerance.";
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)
-        elseif noncvxCons == 1
-           solnStat{N-1} = "Solution did not converge within max. number of iterations.";
-           disp("Solution converged to within nonconvex constraint tolerance.")
+        elseif noncvxConsSatisfied == 1
+           solnStat{N-1} = "Solution converged to within nonconvex constraint tolerance.";
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)
         elseif cvx_status == "Solved"
-           solnStat{N-1} = "Solution did not converge within max. number of iterations.";
-           disp("Solution converged to an optimal solution.")
+           solnStat{N-1} = "Solution converged to an optimal solution.";
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)       
         end
-        solnTables{N-1} = t;
     end
+    simTime(N-1) = simTime(N-1) + tic - t_start;
+    disp(solnStat{N-1})
+    solnTables{N-1} = t;
     % Obtain velocity for each vehicle at each state from U*
     vx = vel_x(v0,U,h,N,n_var,K);
     vy = vel_y(v0,U,h,N,n_var,K);
@@ -210,6 +207,7 @@ for N=2:N_Quads
     ylabel('y [m]')
 
     disp("Computation Time [N = "+N+"]: " + double(simTime(N-1))/10^6 + " seconds");
+    keyboard
 end
 figure('Name','Computational Time')
 hold on; grid on; box on;
