@@ -4,12 +4,17 @@ close all
 % Conflict-free trajectories for quadrotors
 % Dietsche, Lee and Sudarsanan
 
-N_Quads = 7;       % Number of vehicles
+N_Quads = 5;       % Number of vehicles
 dStartEnd = 20;    % Distance between start and end points for quadrotors
 simTime  = zeros(1,N_Quads-1);
 solnStat = cell(1,N_Quads-1);
 solnTables = cell(1,N_Quads-1);
-for N=2:N_Quads
+
+% Rune single case
+for N=N_Quads
+  
+% % Run multiple cases
+% for N=2:N_quads
     figure(N-1);
     [x0, xf]= setStartAndEndPts(dStartEnd,N); % Set the start and points for each vehicle
     
@@ -17,12 +22,14 @@ for N=2:N_Quads
     % Trajectory Generation" p. 7 figure 4
     u_max = 35;  % [m/s^2] Max acceleration per vehicle
     j_max = 200; % [m/s^3] Max jerk per vehicle    
+    v0 = zeros(N,2);                % Set initial velocity to zero for each vehicle
     
     t_start = tic;
-
     R = 1.0; % [m] Min. distance of aviodance
-    h = 0.2; % [s] Sampling time
-    T = 5;   % [s] Total flight time for each vehicle
+    h = 0.1; % [s] Sampling time
+    
+    
+    T = 10;   % [s] Total flight time for each vehicle
     % Estimate flight time
 %     T = estimateFlightTime(dStartEnd,u_max); % Assumes distance traveled same for all quads
     K = ceil(T/h)+1;   % Number of states
@@ -33,9 +40,6 @@ for N=2:N_Quads
     p_min_x(1:N*K,1) = 0;            % [m] Define the space allowed to fly in
     p_max_y(1:N*K,1) = dStartEnd+10; % [m] Define the space allowed to fly in
     p_min_y(1:N*K,1) = 0;            % [m] Define the space allowed to fly in
-
-    
-    v0 = zeros(N,2);                % Set initial velocity to zero for each vehicle
 
     % Obtain intitial solution to be used for the first approximation of the
     % avoidance constraints. Here, there are no avoidance constraints.
@@ -89,6 +93,7 @@ for N=2:N_Quads
                                                  'MarkerFaceColor',p_hand.Color);
         plot(xf(i,1),xf(i,2),'p','MarkerSize',8,'MarkerEdgeColor',p_hand.Color,...
                                                  'MarkerFaceColor',p_hand.Color);
+            
     end
     title("Initial trajectories in 2-D ["+N+" Quads]")
     xlabel('x [m]')
@@ -102,7 +107,7 @@ for N=2:N_Quads
     fold = U'*U; fnew = 0;
     cvx_status = "Infeasible";
     noncvxConsSatisfied = 0;
-    maxiter = 20;
+    maxiter = 10;
     iter = 1;
 
     % The main loop for enforcing avoidance constraints using the linear
