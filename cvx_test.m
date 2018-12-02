@@ -17,8 +17,8 @@ for N=N_Quads
 % for N=2:N_quads
     figure(N-1);
     [x0, xf]= setStartAndEndPts(dStartEnd,N); % Set the start and points for each vehicle
-    x0 = flipud(x0);
-    xf = flipud(xf);
+%     x0 = flipud(x0);
+%     xf = flipud(xf);
     % Vehicle parameters based on paper by Ardakani, et. al "Online Minimum-Jerk
     % Trajectory Generation" p. 7 figure 4
     u_max = 35;  % [m/s^2] Max acceleration per vehicle
@@ -216,7 +216,6 @@ for N=N_Quads
     ylabel('y [m]')
 
     disp("Computation Time [N = "+N+"]: " + double(simTime(N-1))/10^6 + " seconds");
-    keyboard
 end
 figure('Name','Computational Time')
 hold on; grid on; box on;
