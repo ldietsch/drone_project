@@ -7,7 +7,7 @@ function vz = vel_z_final(v0,Uz,h,N,K)
 vz = cvx(zeros(N,1));
 
 for j = 1:N
-    vz(j) = v0(j,2) + h*sum(Uz(j,1:K-1));
+    vz(j) = v0(j,3) + h*sum(Uz(j,1:K-1));
 end
 
 end

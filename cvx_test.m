@@ -5,7 +5,7 @@ close all
 % Dietsche, Lee and Sudarsanan
 
 N_Quads = 3;       % Number of vehicles
-dStartEnd = 6;    % Distance between start and end points for quadrotors
+dStartEnd = 10;    % Distance between start and end points for quadrotors
 simTime  = zeros(1,N_Quads-1);
 solnStat = cell(1,N_Quads-1);
 solnTables = cell(1,N_Quads-1);
@@ -44,31 +44,38 @@ for N=N_Quads
     p_max_z(1:N*K,1) = dStartEnd+10; % [m] Define the space allowed to fly in
     p_min_z(1:N*K,1) = 0;            % [m] Define the space allowed to fly in
     
+    gravity = repmat([0;0;-9.8],N*K,1);
     % Obtain intitial solution to be used for the first approximation of the
     % avoidance constraints. Here, there are no avoidance constraints.
     cvx_begin quiet 
         variable U(N*n_var) % Every n_var is a different vehicle
-        minimize( U'*U )
+        minimize( (U+gravity)'*(U +gravity))
+%         minimize(U'*U)
         subject to
-        
         expressions Jx Jy
-        
+
         Ux = U(1:3:N*n_var);
         Ux = reshape(Ux,N,K);
         Uy = U(2:3:N*n_var);
         Uy = reshape(Uy,N,K);
         Uz = U(3:3:N*n_var);
         Uz = reshape(Uz,N,K);
-        
-        Jx = (Ux(:,2:end)-Ux(:,1:end-1))/h;%jerk_x(U,h,N,K,n_var);
-        Jy = (Uy(:,2:end)-Uy(:,1:end-1))/h;
-        Jz = (Uz(:,2:end)-Uz(:,1:end-1))/h;
-        
+
+%             Jx = (Ux(:,2:end)-Ux(:,1:end-1))/h;%jerk_x(U,h,N,K,n_var);
+%             Jy = (Uy(:,2:end)-Uy(:,1:end-1))/h;
+%             Jz = (Uz(:,2:end)-Uz(:,1:end-1))/h;
+
+        Jx = jerk_x(Ux,h,N,K);
+        Jy = jerk_y(Uy,h,N,K);
+        Jz = jerk_z(Uz,h,N,K);
+
         % Constraints (bounds) for jerk
-        Jx(:).^2 + Jy(:).^2 + Jz(:).^2 <= j_max^2
-        % Constraints (bounds) for acceleration   
-        Ux(:).^2 + Uy(:).^2 + Uz(:).^2 <= u_max^2 
-        
+        obtain_jerk(Jx,Jy,Jz,N,K) <= j_max
+%             Jx(:).^2 + Jy(:).^2 + Jz(:).^2 <= j_max^2
+%             % Constraints (bounds) for acceleration   
+        obtain_U(Ux,Uy,Uz,N,K) <= u_max
+%             Ux(:).^2 + Uy(:).^2 + Uz(:).^2 <= u_max^2 
+
         Ux(:,K) == 0; %cvx(zeros(N,1));
         Uy(:,K) == 0; %cvx(zeros(N,1));
         Uz(:,K) == 0; %cvx(zeros(N,1));
@@ -79,24 +86,29 @@ for N=N_Quads
 %         end
 
         % Velocity constraints
+%             v0(:,1) + h*K*sum(Ux(:,1:K-1),2) == 0;
+%             v0(:,2) + h*K*sum(Uy(:,1:K-1),2) == 0;
+%             v0(:,3) + h*K*sum(Uz(:,1:K-1),2) == 0;
+
         vel_x_final(v0,Ux,h,N,K) == 0;
         vel_y_final(v0,Uy,h,N,K) == 0;
         vel_z_final(v0,Uz,h,N,K) == 0;
 
-        
 %         vel_x_final(v0,U,h,N,n_var,K) == 0;
 %         vel_y_final(v0,U,h,N,n_var,K) == 0;
         % Constraints for position (inequality)
-        p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x %#ok<*CHAIN>
+        p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
         p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
         p_min_z<= pos_z(x0,v0,U,h,N,n_var,K) <= p_max_z
-        
+
         % Constraints for position (equality)
         target_pos_x(x0,v0,U,h,N,n_var,K) == xf(:,1)
         target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
         target_pos_z(x0,v0,U,h,N,n_var,K) == xf(:,3)
     cvx_end
-
+    if cvx_status == "Solved"
+        disp("Initial trajectories found successfully");
+    end
     % Obtain initial trajectories
     xq = recover_x(x0,v0,U,h,N,n_var,K);
     xq = reshape(xq,N,K);
@@ -126,6 +138,7 @@ for N=N_Quads
     xlabel('x [m]')
     ylabel('y [m]')
     drawnow
+    keyboard
 
     % Resume simulation time logging
     t_start = tic;
@@ -145,7 +158,8 @@ for N=N_Quads
 
         cvx_begin quiet
             variable U(N*n_var) % Every n_var is a different vehicle
-            minimize( U'*U )
+%             minimize(U'*U)
+            minimize((U+gravity)'*(U+gravity))
             subject to
             expressions Jx Jy
         
@@ -156,14 +170,20 @@ for N=N_Quads
             Uz = U(3:3:N*n_var);
             Uz = reshape(Uz,N,K);
 
-            Jx = (Ux(:,2:end)-Ux(:,1:end-1))/h;%jerk_x(U,h,N,K,n_var);
-            Jy = (Uy(:,2:end)-Uy(:,1:end-1))/h;
-            Jz = (Uz(:,2:end)-Uz(:,1:end-1))/h;
+%             Jx = (Ux(:,2:end)-Ux(:,1:end-1))/h;%jerk_x(U,h,N,K,n_var);
+%             Jy = (Uy(:,2:end)-Uy(:,1:end-1))/h;
+%             Jz = (Uz(:,2:end)-Uz(:,1:end-1))/h;
 
+            Jx = jerk_x(Ux,h,N,K);
+            Jy = jerk_y(Uy,h,N,K);
+            Jz = jerk_z(Uz,h,N,K);
+            
             % Constraints (bounds) for jerk
-            Jx(:).^2 + Jy(:).^2 + Jz(:).^2 <= j_max^2
-            % Constraints (bounds) for acceleration   
-            Ux(:).^2 + Uy(:).^2 + Uz(:).^2 <= u_max^2 
+            obtain_jerk(Jx,Jy,Jz,N,K) <= j_max
+%             Jx(:).^2 + Jy(:).^2 + Jz(:).^2 <= j_max^2
+%             % Constraints (bounds) for acceleration   
+            obtain_U(Ux,Uy,Uz,N,K) <= u_max
+%             Ux(:).^2 + Uy(:).^2 + Uz(:).^2 <= u_max^2 
 
             Ux(:,K) == 0; %cvx(zeros(N,1));
             Uy(:,K) == 0; %cvx(zeros(N,1));
@@ -240,6 +260,7 @@ for N=N_Quads
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)       
         end
+        t = table(fnew,violated_noncvx_cons,string(cvx_status))
     end
     simTime(N-1) = simTime(N-1) + tic - t_start;
     disp(solnStat{N-1})
@@ -268,7 +289,7 @@ for N=N_Quads
     ylabel('y [m]')
 
     disp("Computation Time [N = "+N+"]: " + double(simTime(N-1))/10^6 + " seconds");
-    keyboard
+%     keyboard
 end
 figure('Name','Computational Time')
 hold on; grid on; box on;

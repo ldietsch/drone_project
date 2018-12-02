@@ -10,7 +10,7 @@ Uz = U(3:3:N*n_var);
 Uz = reshape(Uz,N,K);
 for j = 1:N
     c = findCoeffs(K);
-    pz(j) = cvx(p0(j,1) + h*(K-1)*v0(j,1)+h^2/2*(c'*Uz(j,1:K-1)'));
+    pz(j) = cvx(p0(j,3) + h*(K-1)*v0(j,3)+h^2/2*(c'*Uz(j,1:K-1)'));
 end
 pz = pz(:);
 

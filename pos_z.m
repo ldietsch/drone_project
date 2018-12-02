@@ -8,10 +8,10 @@ function pz = pos_z(p0,v0,U,h,N,n_var,K)
 Uz = U(3:3:N*n_var);
 Uz = reshape(Uz,N,K);
 for j = 1:N
-    pz(j,1) = cvx(p0(j,2));
+    pz(j,1) = cvx(p0(j,3));
     for k = 2:K
        c = findCoeffs(k);
-       pz(j,k) = cvx(pz(j,1) + h*(k-1)*v0(j,2)+h^2/2*(c'*Uz(j,1:k-1)'));
+       pz(j,k) = cvx(pz(j,1) + h*(k-1)*v0(j,3)+h^2/2*(c'*Uz(j,1:k-1)'));
     end
 end
 pz = pz(:);
