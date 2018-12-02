@@ -5,7 +5,7 @@ function px = pos_x(p0,v0,U,h,N,n_var,K)
 % This is the cvx-solver version which outputs a cvx object. See recover_x 
 % recover_y for the "double" type output.
 % This formula is according to Auguliaro.
-Ux = U(1:2:N*n_var-1);
+Ux = U(1:3:N*n_var);
 Ux = reshape(Ux,N,K);
 for j = 1:N
     px(j,1) = cvx(p0(j,1));

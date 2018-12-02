@@ -5,7 +5,7 @@ function px = recover_x(p0,v0,U,h,N,n_var,K)
 % This is the "double" type version which can output to the workspace. 
 % See pos_x  pos_y for the "cvx" type output.
 % This formula is according to Auguliaro.
-Ux = U(1:2:N*n_var-1);
+Ux = U(1:3:N*n_var);
 Ux = reshape(Ux,N,K);
 for j = 1:N
     px(j,1) = (p0(j,1));

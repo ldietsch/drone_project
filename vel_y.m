@@ -4,7 +4,7 @@ function vy = vel_y(v0,U,h,N,n_var,K)
 % variables, and K - number of states, and computes the velocity in the
 % y-direction for every Nth vehicle and Kth state. This outputs a double to
 % the workspace.
-Uy = U(2:2:N*n_var);
+Uy = U(2:3:N*n_var);
 Uy = reshape(Uy,N,K);
 vy = zeros(N,K);
 for j = 1:N
