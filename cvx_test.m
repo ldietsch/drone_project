@@ -4,7 +4,7 @@ close all
 % Conflict-free trajectories for quadrotors
 % Dietsche, Lee and Sudarsanan
 
-N_Quads = 5;       % Number of vehicles
+N_Quads = 7;       % Number of vehicles
 dStartEnd = 20;    % Distance between start and end points for quadrotors
 simTime  = zeros(1,N_Quads-1);
 solnStat = cell(1,N_Quads-1);
@@ -17,7 +17,8 @@ for N=N_Quads
 % for N=2:N_quads
     figure(N-1);
     [x0, xf]= setStartAndEndPts(dStartEnd,N); % Set the start and points for each vehicle
-    
+    x0 = flipud(x0);
+    xf = flipud(xf);
     % Vehicle parameters based on paper by Ardakani, et. al "Online Minimum-Jerk
     % Trajectory Generation" p. 7 figure 4
     u_max = 35;  % [m/s^2] Max acceleration per vehicle
@@ -113,7 +114,7 @@ for N=N_Quads
     % The main loop for enforcing avoidance constraints using the linear
     % approximation formulated by Augugliaro
 %     while abs(fold-fnew) > eps && noncvxConsSatisfied == 0 && iter < maxiter && cvx_status ~= "Solved"
-    while ((abs(fold-fnew) > eps && cvx_status ~= "Solved") || ~noncvxConsSatisfied) && iter < maxiter %&& cvx_status ~= "Solved"
+    while ((abs(fold-fnew) > eps && cvx_status ~= "Solved") || ~noncvxConsSatisfied) && iter < maxiter
         fold = U'*U;
 
         cvx_begin quiet
@@ -130,7 +131,7 @@ for N=N_Quads
             Ux = reshape(Ux,N,K);
             Uy = U(2:2:N*n_var);
             Uy = reshape(Uy,N,K);
-            obtain_U(Ux,Uy,N,K) <= u_max 
+            obtain_U(Ux,Uy,N,K) <= u_max
             for i = 1:N
                Ux(i,K) == 0;
                Uy(i,K) == 0;
@@ -173,14 +174,17 @@ for N=N_Quads
                avoidance_radius,iter)
         elseif abs(fold-fnew) <= eps
            solnStat{N-1} = "Solution converged to within function tolerance.";
+           disp("Function tolerance satisfied")
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)
         elseif noncvxConsSatisfied == 1
            solnStat{N-1} = "Solution converged to within nonconvex constraint tolerance.";
+           disp("Non Convex constraints satisfied")
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)
         elseif cvx_status == "Solved"
            solnStat{N-1} = "Solution converged to an optimal solution.";
+           disp("CVX found an optimal solution")
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)       
         end

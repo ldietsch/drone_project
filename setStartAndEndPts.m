@@ -3,7 +3,7 @@ function [start_pts,end_pts] = setStartAndEndPts(diam,n)
     center_pt = [5,5] + R;
     [start_pts,end_pts] = convergingPaths(R,center_pt,n);
 %     [start_pts,end_pts] = paper2DScenario(R,center_pt);
-    gcf
+    gcf;
     hold on; grid on; box on;
     lims = [min(center_pt)-R-5,max(center_pt)+R+5];
     xlim(lims); ylim(lims);
