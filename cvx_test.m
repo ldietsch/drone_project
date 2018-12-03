@@ -4,7 +4,7 @@ close all
 % Conflict-free trajectories for quadrotors
 % Dietsche, Lee and Sudarsanan
 
-N_Quads = 3;       % Number of vehicles
+N_Quads = 5;       % Number of vehicles
 dStartEnd = 10;    % Distance between start and end points for quadrotors
 simTime  = zeros(1,N_Quads-1);
 solnStat = cell(1,N_Quads-1);
@@ -17,8 +17,8 @@ for N=N_Quads
 % for N=2:N_quads
     figure(N-1);
     [x0, xf]= setStartAndEndPts(dStartEnd,N); % Set the start and points for each vehicle
-%     x0 = flipud(x0);
-%     xf = flipud(xf);
+    x0 = flipud(x0);
+    xf = flipud(xf);
     % Vehicle parameters based on paper by Ardakani, et. al "Online Minimum-Jerk
     % Trajectory Generation" p. 7 figure 4
     u_max = 35;  % [m/s^2] Max acceleration per vehicle
@@ -30,7 +30,7 @@ for N=N_Quads
     h = 0.1; % [s] Sampling time
     
     
-    T = 8;   % [s] Total flight time for each vehicle
+    T = 12;   % [s] Total flight time for each vehicle
     % Estimate flight time
 %     T = estimateFlightTime(dStartEnd,u_max); % Assumes distance traveled same for all quads
     K = ceil(T/h)+1;   % Number of time steps
