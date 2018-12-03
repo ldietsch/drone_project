@@ -17,8 +17,6 @@ for N=N_Quads
 % for N=2:N_quads
     figure(N-1);
     [x0, xf]= setStartAndEndPts(dStartEnd,N); % Set the start and points for each vehicle
-    x0 = flipud(x0);
-    xf = flipud(xf);
     % Vehicle parameters based on paper by Ardakani, et. al "Online Minimum-Jerk
     % Trajectory Generation" p. 7 figure 4
     u_max = 35;  % [m/s^2] Max acceleration per vehicle
@@ -30,7 +28,7 @@ for N=N_Quads
     h = 0.1; % [s] Sampling time
     
     
-    T = 12;   % [s] Total flight time for each vehicle
+    T = 15;   % [s] Total flight time for each vehicle
     % Estimate flight time
 %     T = estimateFlightTime(dStartEnd,u_max); % Assumes distance traveled same for all quads
     K = ceil(T/h)+1;   % Number of time steps
@@ -134,6 +132,28 @@ for N=N_Quads
                                                  'MarkerFaceColor',p_hand.Color);
             
     end
+    % Plot the position bound
+    p1 = [p_min_x(1),p_min_y(1),p_min_z(1)];
+    p2 = [p_max_x(1),p_min_y(1),p_min_z(1)];
+    p3 = [p_max_x(1),p_max_y(1),p_min_z(1)];
+    p4 = [p_min_x(1),p_max_y(1),p_min_z(1)];
+    p5 = [p_min_x(1),p_min_y(1),p_max_z(1)];
+    p6 = [p_max_x(1),p_min_y(1),p_max_z(1)];
+    p7 = [p_max_x(1),p_max_y(1),p_max_z(1)];
+    p8 = [p_min_x(1),p_max_y(1),p_max_z(1)];
+    l1 = [p1;p2]; l2 = [p2;p3]; l3 = [p3;p4]; l4 = [p1;p4];
+    l5 = [p1;p5]; l6 = [p2;p6]; l7 = [p3;p7]; l8 = [p4;p8];
+    l9 = [p5;p6]; l10 = [p6;p7]; l11 = [p7;p8]; l12 = [p5;p8];
+    L_bot   = [l1;l2;l3;l4];
+    L_sides1 = [l5;l9;l6];
+    L_sides2 = [l7;l11;l8];
+    L_top1   = l10;
+    L_top2   = l12;
+    plot3(L_bot(:,1),L_bot(:,2),L_bot(:,3),'k-')
+    plot3(L_sides1(:,1),L_sides1(:,2),L_sides1(:,3),'k-')
+    plot3(L_sides2(:,1),L_sides2(:,2),L_sides2(:,3),'k-')
+    plot3(L_top1(:,1),L_top1(:,2),L_top1(:,3),'k-')
+    plot3(L_top2(:,1),L_top2(:,2),L_top2(:,3),'k-')
     title("Initial trajectories in 3-D ["+N+" Quads]")
     xlabel('x [m]')
     ylabel('y [m]')
@@ -147,7 +167,7 @@ for N=N_Quads
     fold = U'*U; fnew = 0;
     cvx_status = "Infeasible";
     noncvxConsSatisfied = 0;
-    maxiter = 10;
+    maxiter = 5;
     iter = 1;
 
     % The main loop for enforcing avoidance constraints using the linear
@@ -261,7 +281,10 @@ for N=N_Quads
            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
                avoidance_radius,iter)       
         end
-        t = table(fnew,violated_noncvx_cons,string(cvx_status))
+        tt = table(fnew,violated_noncvx_cons,string(cvx_status))
+        if cvx_status ~= "Solved"
+            keyboard
+        end
     end
     simTime(N-1) = simTime(N-1) + tic - t_start;
     disp(solnStat{N-1})
