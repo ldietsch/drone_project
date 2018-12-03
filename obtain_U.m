@@ -4,8 +4,8 @@ function U_nk = obtain_U(Ux,Uy,Uz,N,K)
 %cvx. Ux and Uy are the acceleration in a 2-D coordinate system.
 U_nk = cvx(zeros(N,K));%use "cvx" to be solver-friendly
 for i  = 1:N
-    for j = 1:K
-        U_nk(i,j) = norm([Ux(i,j);Uy(i,j);Uz(i,j)]);
+    for k = 1:K
+        U_nk(i,k) = norm([Ux(i,k);Uy(i,k);Uz(i,k)]);
     end
 end
 U_nk = U_nk(:);

@@ -16,16 +16,18 @@ py = reshape(py,N,K);
 pz = pos_z(x0,v0,Uz+Gz,h,N,K);
 pz = reshape(pz,N,K);
 
-for i=1:N
-    for j=1:N
+for i=1:N-1
+    for j=i+1:N
         for k = 1:K
-            if i~=j && i < j
-                eta = ([xq(i,k);yq(i,k);zq(i,k)]-[xq(j,k);yq(j,k);zq(i,k)])./...
-                    sqrt((xq(i,k)-xq(j,k))^2+(yq(i,k)-yq(j,k))^2+(zq(i,k)-zq(j,k))^2);
-                p(i,k) = sqrt((xq(i,k)-xq(j,k))^2+(yq(i,k)-yq(j,k))^2+(zq(i,k)-zq(j,k))^2)+...
-                    eta'*([px(i,k);py(i,k);pz(i,k)]-[px(j,k);py(j,k);pz(j,k)]-...
-                    ([xq(i,k);yq(i,k);zq(i,k)]-[xq(j,k);yq(j,k);zq(j,k)]));
-            end
+            pqi = [xq(i,k);yq(i,k);zq(i,k)];
+            pqj = [xq(j,k);yq(j,k);zq(i,k)];
+            
+            pi  = [px(i,k);py(i,k);pz(i,k)];
+            pj  = [px(j,k);py(j,k);pz(j,k)];
+            
+            eta = (pqi-pqj)/norm(pqi-pqj);
+            
+            p(i,k) = norm(pqi-pqj) + eta'*(pi - pj - (pqi - pqj));
         end
     end
 end

@@ -4,7 +4,7 @@ close all
 % Conflict-free trajectories for quadrotors
 % Dietsche, Lee and Sudarsanan
 
-N_Quads = 5;       % Number of vehicles
+N_Quads = 2;       % Number of vehicles
 dStartEnd = 10;    % Distance between start and end points for quadrotors
 simTime  = zeros(1,N_Quads-1);
 solnStat = cell(1,N_Quads-1);
@@ -28,7 +28,7 @@ for N=N_Quads
     h = 0.1; % [s] Sampling time
     
     
-    T = 15;   % [s] Total flight time for each vehicle
+    T = 18;   % [s] Total flight time for each vehicle
     % Estimate flight time
 %     T = estimateFlightTime(dStartEnd,u_max); % Assumes distance traveled same for all quads
     K = ceil(T/h)+1;   % Number of time steps
@@ -63,14 +63,9 @@ for N=N_Quads
         Uz = U(3:3:N*n_var);
         Uz = reshape(Uz,N,K);
 
-%             Jx = (Ux(:,2:end)-Ux(:,1:end-1))/h;%jerk_x(U,h,N,K,n_var);
-%             Jy = (Uy(:,2:end)-Uy(:,1:end-1))/h;
-%             Jz = (Uz(:,2:end)-Uz(:,1:end-1))/h;
-
-        Jx = jerk_x(Ux,h,N,K);
-        Jy = jerk_y(Uy,h,N,K);
-        Jz = jerk_z(Uz,h,N,K);
-
+        Jx = (Ux(:,2:end) - Ux(:,1:end-1))/h;
+        Jy = (Uy(:,2:end) - Uy(:,1:end-1))/h;
+        Jz = (Uz(:,2:end) - Uz(:,1:end-1))/h;
         % Constraints (bounds) for jerk
         obtain_jerk(Jx,Jy,Jz,N,K) <= j_max
 %             Jx(:).^2 + Jy(:).^2 + Jz(:).^2 <= j_max^2
@@ -191,24 +186,23 @@ for N=N_Quads
             Uz = U(3:3:N*n_var);
             Uz = reshape(Uz,N,K);
             
-%             Jx = (Ux(:,2:end)-Ux(:,1:end-1))/h;%jerk_x(U,h,N,K,n_var);
-%             Jy = (Uy(:,2:end)-Uy(:,1:end-1))/h;
-%             Jz = (Uz(:,2:end)-Uz(:,1:end-1))/h;
+            Jx = (Ux(:,2:end) - Ux(:,1:end-1))/h;
+            Jy = (Uy(:,2:end) - Uy(:,1:end-1))/h;
+            Jz = (Uz(:,2:end) - Uz(:,1:end-1))/h;
 
-            Jx = jerk_x(Ux,h,N,K);
-            Jy = jerk_y(Uy,h,N,K);
-            Jz = jerk_z(Uz,h,N,K);
-            
-            % Constraints (bounds) for jerk
+%             % Constraints (bounds) for jerk
             obtain_jerk(Jx,Jy,Jz,N,K) <= j_max
 %             Jx(:).^2 + Jy(:).^2 + Jz(:).^2 <= j_max^2
 %             % Constraints (bounds) for acceleration   
             obtain_U(Ux,Uy,Uz,N,K) <= u_max
 %             Ux(:).^2 + Uy(:).^2 + Uz(:).^2 <= u_max^2 
 
-            Ux(:,K) == 0; %cvx(zeros(N,1));
-            Uy(:,K) == 0; %cvx(zeros(N,1));
-            Uz(:,K)+Gz(:,K) == 0; %cvx(zeros(N,1));
+%             Ux(:,K) == cvx(zeros(N,1));
+%             Uy(:,K) == cvx(zeros(N,1));
+%             Uz(:,K)+Gz(:,K) == cvx(zeros(N,1));
+            Ux(:,K) == 0;
+            Uy(:,K) == 0;
+            Uz(:,K)+Gz(:,K) == 0;
     %         for i = 1:N
     %            Ux(i,K) == 0;
     %            Uy(i,K) == 0;
@@ -227,13 +221,13 @@ for N=N_Quads
     %         vel_x_final(v0,U,h,N,n_var,K) == 0;
     %         vel_y_final(v0,U,h,N,n_var,K) == 0;
             % Constraints for position (inequality)
-            p_min_x<= pos_x(x0,v0,Ux,h,N,K) <= p_max_x
-            p_min_y<= pos_y(x0,v0,Uy,h,N,K) <= p_max_y
+            p_min_x<= pos_x(x0,v0,Ux   ,h,N,K) <= p_max_x
+            p_min_y<= pos_y(x0,v0,Uy   ,h,N,K) <= p_max_y
             p_min_z<= pos_z(x0,v0,Uz+Gz,h,N,K) <= p_max_z
 
             % Constraints for position (equality)
-            target_pos_x(x0,v0,Ux,h,N,K) == xf(:,1)
-            target_pos_y(x0,v0,Uy,h,N,K) == xf(:,2)
+            target_pos_x(x0,v0,Ux   ,h,N,K) == xf(:,1)
+            target_pos_y(x0,v0,Uy   ,h,N,K) == xf(:,2)
             target_pos_z(x0,v0,Uz+Gz,h,N,K) == xf(:,3)
             
             % Constraints for position (inequality / avoidance)
