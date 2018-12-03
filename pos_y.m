@@ -1,12 +1,10 @@
-function py = pos_y(p0,v0,U,h,N,n_var,K)
+function py = pos_y(p0,v0,Uy,h,N,K)
 % pos_y takes as inputs p0 - initial position, v0 - initial velocity, U - 
 % acceleration, h - sampling time, n_var - number of design variables and 
 % computes the y-coordinate of position for every Nth vehicle and Kth state
 % This is the cvx-solver version which outputs a cvx object. See recover_x 
 % recover_y for the "double" type output.
 % This formula is according to Auguliaro.
-Uy = U(2:3:N*n_var);
-Uy = reshape(Uy,N,K);
 for j = 1:N
     py(j,1) = cvx(p0(j,2));
     for k = 2:K

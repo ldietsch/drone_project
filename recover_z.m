@@ -1,12 +1,10 @@
-function pz = recover_z(p0,v0,U,h,N,n_var,K)
+function pz = recover_z(p0,v0,Uz,h,N,K)
 % recover_y takes as inputs p0 - initial position, v0 - initial velocity, U - 
 % acceleration, h - sampling time, n_var - number of design variables and 
 % computes the y-coordinate of position for every Nth vehicle and Kth state
 % This is the "double" type version which can output to the workspace. 
 % See pos_x  pos_y for the "cvx" type output.
 % This formula is according to Auguliaro.
-Uz = U(2:3:N*n_var);
-Uz = reshape(Uz,N,K);
 for j = 1:N
     pz(j,1) = (p0(j,3));
     for k = 2:K

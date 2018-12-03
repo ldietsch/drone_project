@@ -1,4 +1,4 @@
-function p = avoidance(xq,yq,zq,x0,v0,U,h,N,n_var,K)
+function p = avoidance(xq,yq,zq,x0,v0,Ux,Uy,Uz,Gz,h,N,K)
 %This function is the approximation equation from Augugliaro that enforces 
 %an avoidance radiance between N vehicles. xq and yq are obtained from the
 %previous iteration and are the previous coordinates for the Nth vehicle. 
@@ -8,12 +8,12 @@ function p = avoidance(xq,yq,zq,x0,v0,U,h,N,n_var,K)
 % for avoidance is implemented outside the function in the cvx algorithm.
 
 %find the current position coordinates, px and py
-px = pos_x(x0,v0,U,h,N,n_var,K);
+px = pos_x(x0,v0,Ux,h,N,K);
 %shape into a matrix for easier readability
 px = reshape(px,N,K);
-py = pos_y(x0,v0,U,h,N,n_var,K);
+py = pos_y(x0,v0,Uy,h,N,K);
 py = reshape(py,N,K);
-pz = pos_z(x0,v0,U,h,N,n_var,K);
+pz = pos_z(x0,v0,Uz+Gz,h,N,K);
 pz = reshape(pz,N,K);
 
 for i=1:N

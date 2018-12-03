@@ -30,7 +30,7 @@ for N=N_Quads
     h = 0.1; % [s] Sampling time
     
     
-    T = 5;   % [s] Total flight time for each vehicle
+    T = 8;   % [s] Total flight time for each vehicle
     % Estimate flight time
 %     T = estimateFlightTime(dStartEnd,u_max); % Assumes distance traveled same for all quads
     K = ceil(T/h)+1;   % Number of time steps
@@ -44,12 +44,16 @@ for N=N_Quads
     p_max_z(1:N*K,1) = dStartEnd+10; % [m] Define the space allowed to fly in
     p_min_z(1:N*K,1) = 0;            % [m] Define the space allowed to fly in
     
-    gravity = repmat([0;0;-9.8],N*K,1);
+    % Gravity vectors 
+    gravity_u = repmat([0;0;-9.8],N*K,1);
+    Gz = -9.8*ones(N,K);
+    
     % Obtain intitial solution to be used for the first approximation of the
     % avoidance constraints. Here, there are no avoidance constraints.
     cvx_begin quiet 
         variable U(N*n_var) % Every n_var is a different vehicle
-        minimize( (U+gravity)'*(U +gravity))
+%         minimize( (U+gravity)'*(U +gravity))
+        minimize( U'*U + 2*gravity_u'*U)
 %         minimize(U'*U)
         subject to
         expressions Jx Jy
@@ -78,12 +82,8 @@ for N=N_Quads
 
         Ux(:,K) == 0; %cvx(zeros(N,1));
         Uy(:,K) == 0; %cvx(zeros(N,1));
-        Uz(:,K) == 0; %cvx(zeros(N,1));
-%         for i = 1:N
-%            Ux(i,K) == 0;
-%            Uy(i,K) == 0;
-%            Uz(i,K) == 0;
-%         end
+        Uz(:,K)+Gz(:,K) == 0; %cvx(zeros(N,1));
+
 
         % Velocity constraints
 %             v0(:,1) + h*K*sum(Ux(:,1:K-1),2) == 0;
@@ -92,29 +92,29 @@ for N=N_Quads
 
         vel_x_final(v0,Ux,h,N,K) == 0;
         vel_y_final(v0,Uy,h,N,K) == 0;
-        vel_z_final(v0,Uz,h,N,K) == 0;
+        vel_z_final(v0,Uz+Gz,h,N,K) == 0;
 
 %         vel_x_final(v0,U,h,N,n_var,K) == 0;
 %         vel_y_final(v0,U,h,N,n_var,K) == 0;
         % Constraints for position (inequality)
-        p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
-        p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
-        p_min_z<= pos_z(x0,v0,U,h,N,n_var,K) <= p_max_z
+        p_min_x <= pos_x(x0,v0,Ux,h,N,K) <= p_max_x
+        p_min_y <= pos_y(x0,v0,Uy,h,N,K) <= p_max_y
+        p_min_z <= pos_z(x0,v0,Uz+Gz,h,N,K) <= p_max_z
 
         % Constraints for position (equality)
-        target_pos_x(x0,v0,U,h,N,n_var,K) == xf(:,1)
-        target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
-        target_pos_z(x0,v0,U,h,N,n_var,K) == xf(:,3)
+        target_pos_x(x0,v0,Ux,h,N,K) == xf(:,1)
+        target_pos_y(x0,v0,Uy,h,N,K) == xf(:,2)
+        target_pos_z(x0,v0,Uz+Gz,h,N,K) == xf(:,3)
     cvx_end
     if cvx_status == "Solved"
         disp("Initial trajectories found successfully");
     end
     % Obtain initial trajectories
-    xq = recover_x(x0,v0,U,h,N,n_var,K);
+    xq = recover_x(x0,v0,Ux,h,N,K);
     xq = reshape(xq,N,K);
-    yq = recover_y(x0,v0,U,h,N,n_var,K);
+    yq = recover_y(x0,v0,Uy,h,N,K);
     yq = reshape(yq,N,K);
-    zq = recover_z(x0,v0,U,h,N,n_var,K);
+    zq = recover_z(x0,v0,Uz+Gz,h,N,K);
     zq = reshape(zq,N,K);
     x = xq;
     y = yq;
@@ -134,11 +134,11 @@ for N=N_Quads
                                                  'MarkerFaceColor',p_hand.Color);
             
     end
-    title("Initial trajectories in 2-D ["+N+" Quads]")
+    title("Initial trajectories in 3-D ["+N+" Quads]")
     xlabel('x [m]')
     ylabel('y [m]')
     drawnow
-    keyboard
+%     keyboard
 
     % Resume simulation time logging
     t_start = tic;
@@ -159,7 +159,8 @@ for N=N_Quads
         cvx_begin quiet
             variable U(N*n_var) % Every n_var is a different vehicle
 %             minimize(U'*U)
-            minimize((U+gravity)'*(U+gravity))
+            minimize( U'*U + 2*gravity_u'*U)
+%             minimize((U+gravity)'*(U+gravity))
             subject to
             expressions Jx Jy
         
@@ -169,7 +170,7 @@ for N=N_Quads
             Uy = reshape(Uy,N,K);
             Uz = U(3:3:N*n_var);
             Uz = reshape(Uz,N,K);
-
+            
 %             Jx = (Ux(:,2:end)-Ux(:,1:end-1))/h;%jerk_x(U,h,N,K,n_var);
 %             Jy = (Uy(:,2:end)-Uy(:,1:end-1))/h;
 %             Jz = (Uz(:,2:end)-Uz(:,1:end-1))/h;
@@ -187,7 +188,7 @@ for N=N_Quads
 
             Ux(:,K) == 0; %cvx(zeros(N,1));
             Uy(:,K) == 0; %cvx(zeros(N,1));
-            Uz(:,K) == 0; %cvx(zeros(N,1));
+            Uz(:,K)+Gz(:,K) == 0; %cvx(zeros(N,1));
     %         for i = 1:N
     %            Ux(i,K) == 0;
     %            Uy(i,K) == 0;
@@ -201,28 +202,28 @@ for N=N_Quads
 
             vel_x_final(v0,Ux,h,N,K) == 0;
             vel_y_final(v0,Uy,h,N,K) == 0;
-            vel_z_final(v0,Uz,h,N,K) == 0;
+            vel_z_final(v0,Uz+Gz,h,N,K) == 0;
             
     %         vel_x_final(v0,U,h,N,n_var,K) == 0;
     %         vel_y_final(v0,U,h,N,n_var,K) == 0;
             % Constraints for position (inequality)
-            p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
-            p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
-            p_min_z<= pos_z(x0,v0,U,h,N,n_var,K) <= p_max_z
+            p_min_x<= pos_x(x0,v0,Ux,h,N,K) <= p_max_x
+            p_min_y<= pos_y(x0,v0,Uy,h,N,K) <= p_max_y
+            p_min_z<= pos_z(x0,v0,Uz+Gz,h,N,K) <= p_max_z
 
             % Constraints for position (equality)
-            target_pos_x(x0,v0,U,h,N,n_var,K) == xf(:,1)
-            target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
-            target_pos_z(x0,v0,U,h,N,n_var,K) == xf(:,3)
+            target_pos_x(x0,v0,Ux,h,N,K) == xf(:,1)
+            target_pos_y(x0,v0,Uy,h,N,K) == xf(:,2)
+            target_pos_z(x0,v0,Uz+Gz,h,N,K) == xf(:,3)
             
             % Constraints for position (inequality / avoidance)
-            avoidance(xq,yq,zq,x0,v0,U,h,N,n_var,K) >= R
+            avoidance(xq,yq,zq,x0,v0,Ux,Uy,Uz,Gz,h,N,K) >= R
             expressions xq(N*K) yq(N*K) zq(N*K)
-            xq = pos_x(x0,v0,U,h,N,n_var,K);
+            xq = pos_x(x0,v0,Ux,h,N,K);
             xq = reshape(xq,N,K);
-            yq = pos_y(x0,v0,U,h,N,n_var,K);
+            yq = pos_y(x0,v0,Uy,h,N,K);
             yq = reshape(yq,N,K);
-            zq = pos_z(x0,v0,U,h,N,n_var,K);
+            zq = pos_z(x0,v0,Uz+Gz,h,N,K);
             zq = reshape(zq,N,K);
         cvx_end
 
@@ -284,7 +285,7 @@ for N=N_Quads
     end_hand   = plot(10000,10000,'kp','MarkerSize',8);
     legend([start_hand,end_hand],{'Start Point','End Point'});
 
-    title("Conflict-free trajectories in 2-D, N = "+N+", R = "+R+" [m]")
+    title("Conflict-free trajectories in 3-D, N = "+N+", R = "+R+" [m]")
     xlabel('x [m]')
     ylabel('y [m]')
 

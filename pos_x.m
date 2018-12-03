@@ -1,12 +1,10 @@
-function px = pos_x(p0,v0,U,h,N,n_var,K)
+function px = pos_x(p0,v0,Ux,h,N,K)
 % pos_x takes as inputs p0 - initial position, v0 - initial velocity, U - 
 % acceleration, h - sampling time, n_var - number of design variables and 
 % computes the x-coordinate of position for every Nth vehicle and Kth state
 % This is the cvx-solver version which outputs a cvx object. See recover_x 
 % recover_y for the "double" type output.
 % This formula is according to Auguliaro.
-Ux = U(1:3:N*n_var);
-Ux = reshape(Ux,N,K);
 for j = 1:N
     px(j,1) = cvx(p0(j,1));
     for k = 2:K

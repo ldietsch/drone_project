@@ -1,4 +1,4 @@
-function px = target_pos_x(p0,v0,U,h,N,n_var,K)
+function px = target_pos_x(p0,v0,Ux,h,N,K)
 % target_pos_x takes as inputs p0 - initial position, 
 % v0 - initial velocity, U - acceleration, h - sampling time, 
 % n_var - number of design variables and computes the final x-coordinate of 
@@ -6,8 +6,6 @@ function px = target_pos_x(p0,v0,U,h,N,n_var,K)
 % final position, xf, enforced as an equality constraint in cvx.
 % This is a cvx-solver version which outputs a cvx object.
 % This formula is according to Auguliaro.
-Ux = U(1:3:N*n_var);
-Ux = reshape(Ux,N,K);
 for j = 1:N
     c = findCoeffs(K);
     px(j) = cvx(p0(j,1) + h*(K-1)*v0(j,1)+h^2/2*(c'*Ux(j,1:K-1)'));

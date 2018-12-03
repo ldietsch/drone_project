@@ -3,6 +3,7 @@ function [start_pts,end_pts] = setStartAndEndPts(diam,n)
     center_pt = [5,5,0] + R;
     [start_pts,end_pts] = convergingPaths(R,center_pt,n);
 %     [start_pts,end_pts] = paper2DScenario(R,center_pt);
+    start_pts(:,3) = 2;
     gcf;
     hold on; grid on; box on;
     lims = [min(center_pt)-R-5,max(center_pt)+R+5];
@@ -29,7 +30,7 @@ end
 function [start_pts,end_pts] = convergingPaths(R,center_pt,n)
     theta = 0; 
     dtheta = pi/n; % Easier to find solutions
-%     dtheta = pi/6; 
+%     dtheta = pi/6;
     for ii=1:n
         start_pts(ii,:) = center_pt + R*[cos(theta),sin(theta),0];
         end_pts(ii,:)   = center_pt - R*[cos(theta),sin(theta),0];
