@@ -4,17 +4,17 @@ close all
 % Conflict-free trajectories for quadrotors
 % Dietsche, Lee and Sudarsanan
 
-N_Quads = 7;       % Number of vehicles
-dStartEnd = 20;    % Distance between start and end points for quadrotors
+N_Quads = 5;       % Number of vehicles
+dStartEnd = 10;%20;    % Distance between start and end points for quadrotors
 simTime  = zeros(1,N_Quads-1);
 solnStat = cell(1,N_Quads-1);
 solnTables = cell(1,N_Quads-1);
 
 % Rune single case
-for N=N_Quads
+% for N=N_Quads
   
 % % Run multiple cases
-% for N=2:N_quads
+for N=2:N_Quads
     figure(N-1);
     [x0, xf]= setStartAndEndPts(dStartEnd,N); % Set the start and points for each vehicle
 %     x0 = flipud(x0);
@@ -29,8 +29,11 @@ for N=N_Quads
     R = 1.0; % [m] Min. distance of aviodance
     h = 0.1; % [s] Sampling time
     
-    
-    T = 10;   % [s] Total flight time for each vehicle
+    if N <=3
+        T = 2;
+    else
+        T = 4 + (N-4);%10;   % [s] Total flight time for each vehicle
+    end
     % Estimate flight time
 %     T = estimateFlightTime(dStartEnd,u_max); % Assumes distance traveled same for all quads
     K = ceil(T/h)+1;   % Number of states
@@ -114,7 +117,7 @@ for N=N_Quads
     % The main loop for enforcing avoidance constraints using the linear
     % approximation formulated by Augugliaro
 %     while abs(fold-fnew) > eps && noncvxConsSatisfied == 0 && iter < maxiter && cvx_status ~= "Solved"
-    while ((abs(fold-fnew) > eps && cvx_status ~= "Solved") || ~noncvxConsSatisfied) && iter < maxiter
+    while ((abs(fold-fnew) > eps && cvx_status ~= "Solved") || ~noncvxConsSatisfied) && iter <= maxiter
         fold = U'*U;
 
         cvx_begin quiet
@@ -210,10 +213,10 @@ for N=N_Quads
     start_hand = plot(10000,10000,'k^','MarkerSize',6);
     end_hand   = plot(10000,10000,'kp','MarkerSize',8);
     legend([start_hand,end_hand],{'Start Point','End Point'});
-
     title("Conflict-free trajectories in 2-D, N = "+N+", R = "+R+" [m]")
     xlabel('x [m]')
     ylabel('y [m]')
+    simTrajectories(x,y,color_palette);
 
     disp("Computation Time [N = "+N+"]: " + double(simTime(N-1))/10^6 + " seconds");
 end
@@ -223,3 +226,4 @@ plot(2:1:N_Quads,double(simTime)/10^6,'bo-');
 set(gca,'XTick',[2:1:N_Quads]);
 xlabel('Number of quadrotors');
 ylabel('Computational Time using CVX solver [s]');
+
