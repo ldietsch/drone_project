@@ -6,20 +6,6 @@ function pz = target_pos_z(p0,v0,Uz,h,N,K)
 % final position, xf, enforced as an equality constraint in cvx.
 % This is a cvx-solver version which outputs a cvx object.
 % This formula is according to Auguliaro.
-for j = 1:N
-    c = findCoeffs(K);
-    pz(j) = cvx(p0(j,3) + h*(K-1)*v0(j,3)+h^2/2*(c'*Uz(j,1:K-1)'));
-end
-pz = pz(:);
-
-end
-
-function c = findCoeffs(k)
-odd_number = 3;
-c = zeros(k-1,1);
-for i=1:k-1
-   c(i,1) = (2*k-odd_number);
-   odd_number = odd_number+2;
-end
-
+c = 2*K-3:-2:1;
+pz = cvx(p0(:,3) + h*(K-1)*v0(:,3)+h^2/2*Uz(:,1:K-1)*c');
 end

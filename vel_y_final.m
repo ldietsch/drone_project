@@ -4,10 +4,7 @@ function vy = vel_y_final(v0,Uy,h,N,K)
 % variables, and K - number of states, and computes the final velocity in the
 % y-direction for every Nth vehicle and Kth state. This outputs a cvx
 % object for use as an equality constraint in the cvx algorithm.
-vy = cvx(zeros(N,1));
 
-for j = 1:N
-    vy(j) = v0(j,2) + h*sum(Uy(j,1:K-1));
-end
+vy = v0(:,2) + h*sum(Uy(:,1:K-1),2);
 
 end

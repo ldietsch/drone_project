@@ -4,11 +4,6 @@ function vx = vel_x_final(v0,Ux,h,N,K)
 % variables, and K - number of states, and computes the final velocity in the
 % x-direction for every Nth vehicle and Kth state. This outputs a cvx
 % object for use as an equality constraint in the cvx algorithm.
-vx = cvx(zeros(N,1));
-
-for j = 1:N
-   vx(j) = v0(j,1)+h*sum(Ux(j,1:K-1));
-end
-
+vx = v0(:,1)+h*sum(Ux(:,1:K-1),2);
 
 end
