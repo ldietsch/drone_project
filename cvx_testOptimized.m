@@ -4,7 +4,7 @@ close all
 % Conflict-free trajectories for quadrotors
 % Dietsche, Lee and Sudarsanan
 
-N_Quads = 4;       % Number of vehicles
+N_Quads = 5;       % Number of vehicles
 dStartEnd = 10;%20;    % Distance between start and end points for quadrotors
 simTime  = zeros(1,N_Quads-1);
 solnStat = cell(1,N_Quads-1);
@@ -27,9 +27,9 @@ for N=N_Quads
     h = 0.1; % [s] Sampling time
     tic
     if N <=3
-        T = 3;
+        T = 5;
     else
-        T = 3;%10;   % [s] Total flight time for each vehicle
+        T = 5;%10;   % [s] Total flight time for each vehicle
     end
     
     % Estimate flight time
@@ -40,7 +40,8 @@ for N=N_Quads
     p_min_x = 0;            % [m] Define the space allowed to fly in
     p_max_y = dStartEnd+10; % [m] Define the space allowed to fly in
     p_min_y = 0;            % [m] Define the space allowed to fly in
-
+    
+    globalIter = 0;
     % Obtain intitial solution to be used for the first approximation of the
     % avoidance constraints. Here, there are no avoidance constraints.
     cvx_begin quiet 
@@ -86,7 +87,7 @@ for N=N_Quads
         target_pos_x_opt(x0,v0,Ux,h,K) == xf(:,1)
         target_pos_y_opt(x0,v0,Uy,h,K) == xf(:,2)
     cvx_end
-
+    disp(cvx_slvitr);
     % Obtain initial trajectories
     xq = recover_x_opt(x0,v0,Ux,h,K);
     xq = reshape(xq,N,K);
@@ -127,7 +128,8 @@ for N=N_Quads
     % The main loop for enforcing avoidance constraints using the linear
     % approximation formulated by Augugliaro
 %     while abs(fold-fnew) > eps && noncvxConsSatisfied == 0 && iter < maxiter && cvx_status ~= "Solved"
-    while ((abs(fold-fnew) > eps && cvx_status ~= "Solved") || ~noncvxConsSatisfied) && iter <= maxiter
+%     while ((abs(fold-fnew) > eps && cvx_status ~= "Solved") || ~noncvxConsSatisfied) && iter <= maxiter
+    while abs(fold-fnew) > eps && ~noncvxConsSatisfied && iter <= maxiter
         fold = U'*U;
         disp("Iteration: "+iter);
         cvx_begin quiet
@@ -179,7 +181,7 @@ for N=N_Quads
             yq = pos_y_opt(x0,v0,Uy,h,K);
             yq = reshape(yq,N,K);
         cvx_end
-
+        disp(cvx_slvitr);
         fnew = U'*U;
         [noncvxConsSatisfied, sum, violations] = check_position_opt(xq,yq,R,N,K);
         violated_noncvx_cons = nchoosek(N,2)*K-sum;
@@ -220,8 +222,10 @@ for N=N_Quads
 %     simTime(N-1) = simTime(N-1) + tic - t_start;
 %     disp(solnStat{N-1})
 %     solnTables{N-1} = t;
-    if iter == maxiter+1 && ((abs(fold-fnew) <= eps || cvx_status ~= "Solved") && ~noncvxConsSatisfied)
+    if iter == maxiter+1 && ~noncvxConsSatisfied
         disp('No solution found');
+    elseif ~noncvxConsSatisfied
+        disp('Solution converged, but constraints are violated');
     else
         disp('Solution found');
     end
