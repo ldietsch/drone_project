@@ -40,10 +40,10 @@ for N=2:N_Quads
     n_var = 2*K; % Need twice the number of states for 2-D
 
 
-    p_max_x(1:N*K,1) = dStartEnd+10; % [m] Define the space allowed to fly in (rectangle)
-    p_min_x(1:N*K,1) = 0;            % [m] Define the space allowed to fly in
-    p_max_y(1:N*K,1) = dStartEnd+10; % [m] Define the space allowed to fly in
-    p_min_y(1:N*K,1) = 0;            % [m] Define the space allowed to fly in
+    p_max_x = dStartEnd+10; % [m] Define the space allowed to fly in (rectangle)
+    p_min_x = 0;            % [m] Define the space allowed to fly in
+    p_max_y = dStartEnd+10; % [m] Define the space allowed to fly in
+    p_min_y = 0;            % [m] Define the space allowed to fly in
 
     % Obtain intitial solution to be used for the first approximation of the
     % avoidance constraints. Here, there are no avoidance constraints.
@@ -51,36 +51,44 @@ for N=2:N_Quads
         variable U(N*n_var) % Every n_var is a different vehicle
         minimize( U'*U )
         subject to
-        % Constraints (bounds) for jerk
-        expressions Jx Jy
-        Jx = jerk_x(U,h,N,K,n_var);
-        Jy = jerk_y(U,h,N,K,n_var);
-        obtain_jerk(Jx,Jy,N,K) <= j_max
-        % Constraints (bounds) for acceleration   
+        
+        % Reshape U for setting up constraints
         Ux = U(1:2:N*n_var-1);
         Ux = reshape(Ux,N,K);
         Uy = U(2:2:N*n_var);
         Uy = reshape(Uy,N,K);
-        obtain_U(Ux,Uy,N,K) <= u_max 
-        for i = 1:N
-           Ux(i,K) == 0;
-           Uy(i,K) == 0;
-        end
+        
+        % Calculate jerk
+        expressions Jx Jy
+        Jx = (Ux(:,2:end)-Ux(:,1:end-1))/h; 
+        Jy = (Uy(:,2:end)-Uy(:,1:end-1))/h; 
+        
+        % Constraints (bounds) for jerk
+        Jx(:).^2 + Jy(:).^2 <= j_max^2
+        
+        % Constraints (bounds) for acceleration   
+        Ux(:).^2 + Uy(:).^2 <= u_max^2
+        
+        Ux(:,K) == 0;
+        Uy(:,K) == 0;
+        
         % Velocity constraints
-        vel_x_final(v0,U,h,N,n_var,K) == 0;
-        vel_y_final(v0,U,h,N,n_var,K) == 0;
+        vel_x_final(v0,Ux,h,K) == 0;
+        vel_y_final(v0,Uy,h,K) == 0;
+       
         % Constraints for position (inequality)
-        p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
-        p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
+        p_min_x<= pos_x(x0,v0,Ux,h,K) <= p_max_x
+        p_min_y<= pos_y(x0,v0,Uy,h,K) <= p_max_y
+        
         % Constraints for position (equality)
-        target_pos_x(x0,v0,U,h,N,n_var,K) == xf(:,1)
-        target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
+        target_pos_x(x0,v0,Ux,h,K) == xf(:,1)
+        target_pos_y(x0,v0,Uy,h,K) == xf(:,2)
     cvx_end
 
     % Obtain initial trajectories
-    xq = recover_x(x0,v0,U,h,N,n_var,K);
+    xq = recover_x(x0,v0,Ux,h,K);
     xq = reshape(xq,N,K);
-    yq = recover_y(x0,v0,U,h,N,n_var,K);
+    yq = recover_y(x0,v0,Uy,h,K);
     yq = reshape(yq,N,K);
     x = xq;
     y = yq;
@@ -124,36 +132,45 @@ for N=2:N_Quads
             variable U(N*n_var) % Every n_var is a different vehicle
             minimize( U'*U )
             subject to
-            % Constraints (bounds) for jerk
-            expressions Jx Jy
-            Jx = jerk_x(U,h,N,K,n_var);
-            Jy = jerk_y(U,h,N,K,n_var);
-            obtain_jerk(Jx,Jy,N,K) <= j_max
-            % Constraints (bounds) for acceleration   
+            
+            % Reshape U for setting up constraints
             Ux = U(1:2:N*n_var-1);
             Ux = reshape(Ux,N,K);
             Uy = U(2:2:N*n_var);
             Uy = reshape(Uy,N,K);
-            obtain_U(Ux,Uy,N,K) <= u_max
-            for i = 1:N
-               Ux(i,K) == 0;
-               Uy(i,K) == 0;
-            end
+            
+            % Calculate jerk
+            expressions Jx Jy
+            Jx = (Ux(:,2:end)-Ux(:,1:end-1))/h;
+            Jy = (Uy(:,2:end)-Uy(:,1:end-1))/h;
+            
+            % Constraints (bounds) for jerk
+            Jx(:).^2 + Jy(:).^2 <= j_max^2
+            
+            % Constraints (bounds) for acceleration
+            Ux(:).^2 + Uy(:).^2 <= u_max^2
+            
+            Ux(:,K) == 0;
+            Uy(:,K) == 0;
+            
             % Velocity constraints
-            vel_x_final(v0,U,h,N,n_var,K) == 0;
-            vel_y_final(v0,U,h,N,n_var,K) == 0;
+            vel_x_final(v0,Ux,h,K) == 0;
+            vel_y_final(v0,Uy,h,K) == 0;
+            
             % Constraints for position (inequality)
-            p_min_x<= pos_x(x0,v0,U,h,N,n_var,K) <= p_max_x
-            p_min_y<= pos_y(x0,v0,U,h,N,n_var,K) <= p_max_y
+            p_min_x<= pos_x(x0,v0,Ux,h,K) <= p_max_x
+            p_min_y<= pos_y(x0,v0,Uy,h,K) <= p_max_y
+            
             % Constraints for position (equality)
-            target_pos_x(x0,v0,U,h,N,n_var,K) == xf(:,1)
-            target_pos_y(x0,v0,U,h,N,n_var,K) == xf(:,2)
+            target_pos_x(x0,v0,Ux,h,K) == xf(:,1)
+            target_pos_y(x0,v0,Uy,h,K) == xf(:,2)
+            
             % Constraints for position (inequality / avoidance)
             avoidance(xq,yq,x0,v0,U,h,N,n_var,K) >= R
             expressions xq(N*K) yq(N*K)
-            xq = pos_x(x0,v0,U,h,N,n_var,K);
+            xq = pos_x(x0,v0,Ux,h,K);
             xq = reshape(xq,N,K);
-            yq = pos_y(x0,v0,U,h,N,n_var,K);
+            yq = pos_y(x0,v0,Uy,h,K);
             yq = reshape(yq,N,K);
         cvx_end
 
