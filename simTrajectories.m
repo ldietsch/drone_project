@@ -1,4 +1,4 @@
-function simTrajectories(Px,Py,color_palette)
+function simTrajectories(Px,Py)
     N = size(Px,1);
     K = size(Px,2);
     
@@ -11,6 +11,7 @@ function simTrajectories(Px,Py,color_palette)
     for ii=1:N
         p_hand(ii) = plot(Px(ii,1),Py(ii,1),'Marker','s','MarkerSize',8,...
             'MarkerEdgeColor','k','MarkerFaceColor','k');%color_palette{ii});
+        circ_hand(ii) = drawCircle([Px(ii,1);Py(ii,1)],0.5);
     end
     ax = gca;
     ax.Legend.String(3:end) = [];    
@@ -18,6 +19,7 @@ function simTrajectories(Px,Py,color_palette)
         for ii=1:N
             p_hand(ii).XData = Px(ii,jj);
             p_hand(ii).YData = Py(ii,jj);
+            drawCircle([Px(ii,jj);Py(ii,jj)],0.5,circ_hand(ii));
         end
         drawnow
         frame = getframe(gcf);
@@ -25,4 +27,15 @@ function simTrajectories(Px,Py,color_palette)
         pause(0.2);
     end
     close(plotMovie);
+end
+
+function h = drawCircle(center,R,h)
+    alpha = 0:0.1:2*pi;
+    circ  = center + R*[cos(alpha);sin(alpha)];
+    if nargin == 2
+        h     = plot(circ(1,:),circ(2,:),'b');
+    elseif nargin == 3
+        h.XData = circ(1,:);
+        h.YData = circ(2,:);
+    end
 end
