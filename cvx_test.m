@@ -11,28 +11,29 @@ solnStat = cell(1,N_Quads-1);
 solnTables = cell(1,N_Quads-1);
 
 % Rune single case
-% for N=N_Quads
+for N=N_Quads
   
 % % Run multiple cases
-for N=2:N_Quads
+% for N=2:N_Quads
     figure(N-1);
     [x0, xf]= setStartAndEndPts(dStartEnd,N); % Set the start and points for each vehicle
-%     x0 = flipud(x0);
-%     xf = flipud(xf);
+    x0 = flipud(x0);
+    xf = flipud(xf);
     % Vehicle parameters based on paper by Ardakani, et. al "Online Minimum-Jerk
     % Trajectory Generation" p. 7 figure 4
     u_max = 35;  % [m/s^2] Max acceleration per vehicle
     j_max = 200; % [m/s^3] Max jerk per vehicle    
     v0 = zeros(N,2);                % Set initial velocity to zero for each vehicle
     
-    t_start = tic;
+%     t_start = tic;
+    tic
     R = 1.0; % [m] Min. distance of aviodance
     h = 0.1; % [s] Sampling time
     
     if N <=3
         T = 2;
     else
-        T = 4 + (N-4);%10;   % [s] Total flight time for each vehicle
+        T = 5;%+ (N-4);%10;   % [s] Total flight time for each vehicle
     end
     % Estimate flight time
 %     T = estimateFlightTime(dStartEnd,u_max); % Assumes distance traveled same for all quads
@@ -86,7 +87,7 @@ for N=2:N_Quads
     y = yq;
 
     % Pause simulation time calculation while plotting
-    simTime(N-1) = simTime(N-1) + tic - t_start;
+%     simTime(N-1) = simTime(N-1) + tic - t_start;
 
     % Plot initial trajectories (no avoidance)
     color_palette = {};
@@ -105,7 +106,7 @@ for N=2:N_Quads
     drawnow
 
     % Resume simulation time logging
-    t_start = tic;
+%     t_start = tic;
 
     eps = 1e-4;
     fold = U'*U; fnew = 0;
@@ -117,7 +118,8 @@ for N=2:N_Quads
     % The main loop for enforcing avoidance constraints using the linear
     % approximation formulated by Augugliaro
 %     while abs(fold-fnew) > eps && noncvxConsSatisfied == 0 && iter < maxiter && cvx_status ~= "Solved"
-    while ((abs(fold-fnew) > eps && cvx_status ~= "Solved") || ~noncvxConsSatisfied) && iter <= maxiter
+%     while ((abs(fold-fnew) > eps && cvx_status ~= "Solved") || ~noncvxConsSatisfied) && iter <= maxiter
+    while abs(fold-fnew) > eps && ~noncvxConsSatisfied && iter <= maxiter
         fold = U'*U;
 
         cvx_begin quiet
@@ -192,9 +194,16 @@ for N=2:N_Quads
                avoidance_radius,iter)       
         end
     end
-    simTime(N-1) = simTime(N-1) + tic - t_start;
-    disp(solnStat{N-1})
-    solnTables{N-1} = t;
+    
+    if abs(fold-fnew)>eps && ~noncvxConsSatisfied
+        disp('No solution found')
+    elseif ~noncvxConsSatisfied
+        disp('Converged. But constraints are not satisfied')
+    end
+%     simTime(N-1) = simTime(N-1) + tic - t_start;
+%     disp(solnStat{N-1})
+%     solnTables{N-1} = t;
+    toc
     % Obtain velocity for each vehicle at each state from U*
     vx = vel_x(v0,U,h,N,n_var,K);
     vy = vel_y(v0,U,h,N,n_var,K);
@@ -216,7 +225,7 @@ for N=2:N_Quads
     title("Conflict-free trajectories in 2-D, N = "+N+", R = "+R+" [m]")
     xlabel('x [m]')
     ylabel('y [m]')
-    simTrajectories(x,y,color_palette);
+    simTrajectories(x,y);
 
     disp("Computation Time [N = "+N+"]: " + double(simTime(N-1))/10^6 + " seconds");
 end
