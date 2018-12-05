@@ -4,7 +4,7 @@ close all
 % Conflict-free trajectories for quadrotors
 % Dietsche, Lee and Sudarsanan
 
-N_Quads = 5;       % Number of vehicles
+N_Quads = 4;       % Number of vehicles
 dStartEnd = 10;%20;    % Distance between start and end points for quadrotors
 simTime  = zeros(1,N_Quads-1);
 solnStat = cell(1,N_Quads-1);
@@ -18,6 +18,8 @@ for N=N_Quads
     [x0, xf]= setStartAndEndPts(dStartEnd,N); % Set the start and points for each vehicle
     % Vehicle parameters based on paper by Ardakani, et. al "Online Minimum-Jerk
     % Trajectory Generation" p. 7 figure 4
+%     x0 = flipud(x0);
+%     xf = flipud(xf);
     u_max = 35;  % [m/s^2] Max acceleration per vehicle
     j_max = 200; % [m/s^3] Max jerk per vehicle    
     v0 = zeros(N,2);                % Set initial velocity to zero for each vehicle
@@ -27,7 +29,7 @@ for N=N_Quads
     if N <=3
         T = 3;
     else
-        T = 4;%10;   % [s] Total flight time for each vehicle
+        T = 3;%10;   % [s] Total flight time for each vehicle
     end
     
     % Estimate flight time
@@ -119,7 +121,7 @@ for N=N_Quads
     fold = U'*U; fnew = 0;
     cvx_status = "Infeasible";
     noncvxConsSatisfied = 0;
-    maxiter = 20;
+    maxiter = 10;
     iter = 1;
 
     % The main loop for enforcing avoidance constraints using the linear
@@ -127,11 +129,10 @@ for N=N_Quads
 %     while abs(fold-fnew) > eps && noncvxConsSatisfied == 0 && iter < maxiter && cvx_status ~= "Solved"
     while ((abs(fold-fnew) > eps && cvx_status ~= "Solved") || ~noncvxConsSatisfied) && iter <= maxiter
         fold = U'*U;
-
+        disp("Iteration: "+iter);
         cvx_begin quiet
             variable U(N*n_var) % Every n_var is a different vehicle
-            minimize( U'*U )
-            subject to
+            
             
             % Reshape U for setting up constraints
             Ux = U(1:2:N*n_var-1);
@@ -144,7 +145,8 @@ for N=N_Quads
                     Jx = (Ux(:,2:end)-Ux(:,1:end-1))/h;
                     Jy = (Uy(:,2:end)-Uy(:,1:end-1))/h;
             
-            
+            minimize(U'*U)
+            subject to
             
 %             Jx = (U(3:2:end)-U(1:2:end-2))/h;
 %             Jy = (U(4:2:end)-U(2:2:end-2))/h;
@@ -152,11 +154,8 @@ for N=N_Quads
             % Constraints (bounds) for jerk
             Jx(:).^2 + Jy(:).^2 <= j_max^2
             % Constraints (bounds) for acceleration
-%                     Ux(:).^2 + Uy(:).^2 <= u_max^2
             U(1:2:end).^2 + U(2:2:end).^2 <= u_max^2;
             % Final acc = 0
-            %         Ux(:,K) == 0;
-            %         Uy(:,K) == 0;
             U(n_var-1:n_var:end) == 0
             U(n_var:n_var:end)   == 0
             
@@ -196,33 +195,35 @@ for N=N_Quads
            break
         end
         iter = iter+1;   
-        % Output convergence information in the command window.
-        if iter == maxiter
-           solnStat{N-1} = "Solution did not converge within max. number of iterations.";
-           t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
-               avoidance_radius,iter)
-        elseif abs(fold-fnew) <= eps
-           solnStat{N-1} = "Solution converged to within function tolerance.";
-           disp("Function tolerance satisfied")
-           t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
-               avoidance_radius,iter)
-        elseif noncvxConsSatisfied == 1
-           solnStat{N-1} = "Solution converged to within nonconvex constraint tolerance.";
-           disp("Non Convex constraints satisfied")
-           t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
-               avoidance_radius,iter)
-        elseif cvx_status == "Solved"
-           solnStat{N-1} = "Solution converged to an optimal solution.";
-           disp("CVX found an optimal solution")
-           t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
-               avoidance_radius,iter)       
-        end
+%         % Output convergence information in the command window.
+%         if iter == maxiter
+%            solnStat{N-1} = "Solution did not converge within max. number of iterations.";
+%            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
+%                avoidance_radius,iter)
+%         elseif abs(fold-fnew) <= eps
+%            solnStat{N-1} = "Solution converged to within function tolerance.";
+%            disp("Function tolerance satisfied")
+%            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
+%                avoidance_radius,iter)
+%         elseif noncvxConsSatisfied == 1
+%            solnStat{N-1} = "Solution converged to within nonconvex constraint tolerance.";
+%            disp("Non Convex constraints satisfied")
+%            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
+%                avoidance_radius,iter)
+%         elseif cvx_status == "Solved"
+%            solnStat{N-1} = "Solution converged to an optimal solution.";
+%            disp("CVX found an optimal solution")
+%            t = table(fnew,violated_noncvx_cons,num_vehicles,num_states,...
+%                avoidance_radius,iter)       
+%         end
     end
 %     simTime(N-1) = simTime(N-1) + tic - t_start;
 %     disp(solnStat{N-1})
-    solnTables{N-1} = t;
+%     solnTables{N-1} = t;
     if iter == maxiter+1 && ((abs(fold-fnew) <= eps || cvx_status ~= "Solved") && ~noncvxConsSatisfied)
         disp('No solution found');
+    else
+        disp('Solution found');
     end
     toc
     

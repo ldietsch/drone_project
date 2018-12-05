@@ -1,24 +1,19 @@
-function [noncvxcons, sum, distances] = check_position(x,y,R,N,K)
+function [noncvxcons, sum, distances] = check_position_opt(x,y,R,N,K)
 %The purpose of this function is to check how well the non-convex
 %constraints are satisfied as an ad-hoc check for convergence. The check is
 %satified to within a tolerance of eps.
 eps = 0.05; %1 cm
 sum = 0;
 distances =[];
-for i=1:N-1%only need to check the distance between each vehicle once
-    for j=1:K
-        for k = i+1:N
-            if i~=k && i < k
-                %check the distance between ith and kth vehicle at the jth
-                %state
-                d = sqrt((x(i,j)-x(k,j))^2+(y(i,j)-y(k,j))^2);
-                check = d>=R-eps;
-                sum = sum + check;
-                if ~check
-                    distances(end+1) = d;
-                end
-            end
 
+for i=1:N-1%only need to check the distance between each vehicle once
+    for j=i+1:N
+        pij = [x(i,:);y(i,:)] - [x(j,:);y(j,:)];
+        D   = sqrt(dot(pij,pij,1));
+        check = D>=R-eps;
+        sum = sum + sum(check);
+        if ~sum(check)
+            distances(end+1,:) = D(check);
         end
     end
 end

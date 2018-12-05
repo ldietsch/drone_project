@@ -22,9 +22,8 @@ for i=1:N-1
             pi  = [px(i,:);py(i,:)];
             pj  = [px(j,:);py(j,:)];
             
-            pqijNorm = sqrt(sum((pqi-pqj).^2,1));
+            pqijNorm = sqrt(dot(pqi-pqj,pqi-pqj,1));
             eta = (pqi-pqj)./repmat(pqijNorm,2,1);
-%             eta = dot((pqi-pqj),pqijNorm,1);
             
 %             p(i,k) = pqijNorm + eta'*(pi - pj - (pqi - pqj));
             p(i,:) = pqijNorm + dot(eta,(pi - pj - (pqi - pqj)),1);
