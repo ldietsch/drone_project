@@ -4,13 +4,14 @@ close all
 % Conflict-free trajectories for quadrotors
 % Dietsche, Lee and Sudarsanan
 
-N_Quads = 5;       % Number of vehicles
+N_Quads = 2;       % Number of vehicles
 dStartEnd = 10;%20;    % Distance between start and end points for quadrotors
 simTime  = zeros(1,N_Quads-1);
 solnStat = cell(1,N_Quads-1);
 solnTables = cell(1,N_Quads-1);
 
 % Rune single case
+SpecificEnergy = zeros(N_Quads-1,1);
 for N=N_Quads
   
 % % Run multiple cases
@@ -228,7 +229,13 @@ for N=N_Quads
     simTrajectories(x,y);
 
     disp("Computation Time [N = "+N+"]: " + double(simTime(N-1))/10^6 + " seconds");
+    SE = 0;
+    for i = 1:N
+       SE = vx(i,:)*vx(i,:)'+vy(i,:)*vy(i,:)';
+    end
+    SpecificEnergy(N-1,1) = SE;
 end
+
 figure('Name','Computational Time')
 hold on; grid on; box on;
 plot(2:1:N_Quads,double(simTime)/10^6,'bo-');
