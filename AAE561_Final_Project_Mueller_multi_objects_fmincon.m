@@ -14,17 +14,17 @@ close all
 tic
 
 %% Initialization
-T = 2;              % Total time
+T = 5;              % Total time
 % delta_t = 0.05;     % Time increments
 delta_t = 0.1;
 steps = T/delta_t;  % Number of total steps
 
-objects = 3;        % Number of Drones
+objects = 6;        % Number of Drones
 
 %% Constraints
 
 p_min  = 0;     % Minimum Position
-p_max  = 30;    % Maximum Position
+p_max  = 20;    % Maximum Position
 d1_max = 1000;  % Max Velocity [m/s]
 d2_max = 35;    % Max Acceleration [m/s^2]
 d3_max = 200;   % Max Jerk [m/s^3]
@@ -211,16 +211,21 @@ colours = ['k','b','g','r','c','m','y'];
 
 % figure(5)
 hold on
+grid on; box on;
 for i = 1:objects
-    p1 = plot(zz(6*i-5,1),zz(6*i-2,1),strcat(colours(i),'^'));
-    p2 = plot(zz(6*i-5,steps+1),zz(6*i-2,steps+1),strcat(colours(i),'p'));
-    plot(zz(6*i-5,:),zz(6*i-2,:),strcat(colours(i),'-'))
-    plot([zz(6*i-5,1),zz(6*i-5,steps+1)],[zz(6*i-2,1),zz(6*i-2,steps+1)],strcat(colours(i),'--'))
+    p1 = plot(zz(6*i-5,1),zz(6*i-2,1),strcat(colours(i),'^'),'MarkerSize',6,'MarkerFaceColor',colours(i),'MarkerEdgeColor','k');
+    p2 = plot(zz(6*i-5,steps+1),zz(6*i-2,steps+1),strcat(colours(i),'p'),'MarkerSize',8,'MarkerFaceColor',colours(i),'MarkerEdgeColor','k');
+    plot(zz(6*i-5,:),zz(6*i-2,:),strcat(colours(i),'-'),'LineWidth',2)
+    plot([zz(6*i-5,1),zz(6*i-5,steps+1)],[zz(6*i-2,1),zz(6*i-2,steps+1)],strcat(colours(i),'--'),'LineWidth',2)
 end
 
+% Pseudo plot for legend
+p1 = plot(10000,10000,'k^');
+p2 = plot(10000,10000,'kp');
+
 title(['Mueller Method for N = ',num2str(objects)])
-xlabel('X position')
-ylabel('Y position')
+xlabel('X [m]')
+ylabel('Y [m]')
 legend([p1,p2],'Start Point','End Point')
 hold off
 
@@ -234,5 +239,4 @@ for i = 2:objects
     Px = [Px;zz(6*i-5,:)];
     Py = [Py;zz(6*i-2,:)];
 end
-
-simTrajectories2(Px,Py,colours)
+simTrajectories2(Px,Py)

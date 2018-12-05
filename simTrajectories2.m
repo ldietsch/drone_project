@@ -1,4 +1,4 @@
-function simTrajectories2(Px,Py,color_palette)
+function simTrajectories2(Px,Py)
     N = size(Px,1);
     K = size(Px,2);
     
@@ -6,16 +6,17 @@ function simTrajectories2(Px,Py,color_palette)
     plotMovie = VideoWriter(movieName); % Name it.
     plotMovie.FrameRate = 10; % How many frames per second.
     open(plotMovie);
-    figure(N-1);
+	gcf;
+    hold on
     % Plot initial location
     for ii=1:N
 %         p_hand(ii) = plot(Px(ii,1),Py(ii,1),'Marker','s','MarkerSize',8,...
 %             'MarkerEdgeColor','k','MarkerFaceColor','k');%color_palette{ii});
         p_hand(ii) = plot(Px(ii,1),Py(ii,1),'Marker','s','MarkerSize',8,...
-            'MarkerEdgeColor','k');%color_palette{ii});
+            'MarkerEdgeColor','k','MarkerFaceColor','k');%color_palette{ii});
     end
     ax = gca;
-%     ax.Legend.String(3:end) = [];    
+    ax.Legend.String(3:end) = [];    
     for jj=1:K
         for ii=1:N
             p_hand(ii).XData = Px(ii,jj);
