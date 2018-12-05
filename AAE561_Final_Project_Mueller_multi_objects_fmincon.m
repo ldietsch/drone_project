@@ -19,7 +19,7 @@ T = 5;              % Total time
 delta_t = 0.1;
 steps = T/delta_t;  % Number of total steps
 
-objects = 6;        % Number of Drones
+objects = 5;        % Number of Drones
 
 %% Constraints
 
@@ -221,8 +221,10 @@ end
 
 % Pseudo plot for legend
 p1 = plot(10000,10000,'k^');
-p2 = plot(10000,10000,'kp');
+p2 = plot(10000,10000,'kp','MarkerSize',8);
 
+xlim([0,20]);
+ylim([0,20]);
 title(['Mueller Method for N = ',num2str(objects)])
 xlabel('X [m]')
 ylabel('Y [m]')
