@@ -160,6 +160,7 @@ for n = 1:objects
     pos_y(n,1)= zz(6*i-2,1);
 end
 
+
 for m = 2:steps+1
     for i = 1:objects*2
         zz(3*i-2:3*i,m) = A*zz(3*i-2:3*i,m-1) + B*y(m-1,i);
@@ -180,6 +181,13 @@ for m = 2:steps+1
         pos_y(n,m)= zz(6*i-2,m);
     end
 end
+
+% calculate specific energy
+    SE = 0;
+    for i = 1:objects
+       SE = SE + vel(i,:)*vel(i,:)';
+    end
+    SE
 
 %% Plot Individual Components
 % x_scale = [0:delta_t:T];
