@@ -1,4 +1,4 @@
-function py = recover_y(p0,v0,Uy,h,K)
+function py = recover_y_opt(p0,v0,Uy,h,K)
 % recover_y takes as inputs p0 - initial position, v0 - initial velocity, U - 
 % acceleration, h - sampling time, n_var - number of design variables and 
 % computes the y-coordinate of position for every Nth vehicle and Kth state

@@ -1,4 +1,4 @@
-function vy = vel_y_final(v0,Uy,h,K)
+function vy = vel_y_final_opt(v0,Uy,h,K)
 % vel_y_final takes as inputs v0 - intial velocity, U - acceleration, h -
 % sampling time, N - number of vehicles, n_var - number of design
 % variables, and K - number of states, and computes the final velocity in the

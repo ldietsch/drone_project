@@ -1,4 +1,4 @@
-function px = target_pos_y(p0,v0,Uy,h,K)
+function px = target_pos_y_opt(p0,v0,Uy,h,K)
 % target_pos_y takes as inputs p0 - initial position, 
 % v0 - initial velocity, U - acceleration, h - sampling time, 
 % n_var - number of design variables and computes the final y-coordinate of 

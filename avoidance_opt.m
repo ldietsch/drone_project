@@ -1,4 +1,4 @@
-function p = avoidance(xq,yq,x0,v0,U,h,N,n_var,K)
+function p = avoidance_opt(xq,yq,x0,v0,Ux,Uy,h,N,K)
 %This function is the approximation equation from Augugliaro that enforces 
 %an avoidance radiance between N vehicles. xq and yq are obtained from the
 %previous iteration and are the previous coordinates for the Nth vehicle. 
@@ -8,20 +8,27 @@ function p = avoidance(xq,yq,x0,v0,U,h,N,n_var,K)
 % for avoidance is implemented outside the function in the cvx algorithm.
 
 %find the current position coordinates, px and py
-px = pos_x(x0,v0,U,h,N,n_var,K);
+px = pos_x_opt(x0,v0,Ux,h,K);
 %shape into a matrix for easier readability
 px = reshape(px,N,K);
-py = pos_y(x0,v0,U,h,N,n_var,K);
+py = pos_y_opt(x0,v0,Uy,h,K);
 py = reshape(py,N,K);
 for i=1:N-1
     for j=i+1:N
-        for k = 1:K
-            eta = ([xq(i,k);yq(i,k)]-[xq(j,k);yq(j,k)])./...
-                sqrt((xq(i,k)-xq(j,k))^2+(yq(i,k)-yq(j,k))^2);
-            p(i,k) = sqrt((xq(i,k)-xq(j,k))^2+(yq(i,k)-yq(j,k))^2)+...
-                eta'*([px(i,k);py(i,k)]-[px(j,k);py(j,k)]-([xq(i,k);...
-                yq(i,k)]-[xq(j,k);yq(j,k)]));
-        end
+%         for k = 1:K
+            pqi = [xq(i,:);yq(i,:)];
+            pqj = [xq(j,:);yq(j,:)];
+            
+            pi  = [px(i,:);py(i,:)];
+            pj  = [px(j,:);py(j,:)];
+            
+            pqijNorm = sqrt(sum((pqi-pqj).^2,1));
+            eta = (pqi-pqj)./repmat(pqijNorm,2,1);
+%             eta = dot((pqi-pqj),pqijNorm,1);
+            
+%             p(i,k) = pqijNorm + eta'*(pi - pj - (pqi - pqj));
+            p(i,:) = pqijNorm + dot(eta,(pi - pj - (pqi - pqj)),1);
+%         end
     end
 end
 

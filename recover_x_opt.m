@@ -1,4 +1,4 @@
-function px = recover_x(p0,v0,Ux,h,K)
+function px = recover_x_opt(p0,v0,Ux,h,K)
 % recover_x takes as inputs p0 - initial position, v0 - initial velocity, U - 
 % acceleration, h - sampling time, n_var - number of design variables and 
 % computes the x-coordinate of position for every Nth vehicle and Kth state
