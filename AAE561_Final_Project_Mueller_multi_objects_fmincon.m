@@ -240,3 +240,20 @@ for i = 2:objects
     Py = [Py;zz(6*i-2,:)];
 end
 simTrajectories2(Px,Py)
+
+% Calculate distances 
+N = size(Px,1);
+distances = [];
+for ii=1:N-1
+    for jj=ii+1:N
+        pij = [Px(ii,:);Py(ii,:)] - [Px(jj,:);Py(jj,:)];
+        D   = sqrt(dot(pij,pij,1));
+        distances(end+1,:) = D;
+    end
+end
+if sum(distances >= 1)
+    disp("No Violations")
+else
+    disp("Violations:")
+    disp(distances)
+end
