@@ -256,7 +256,7 @@ for N=2:N_Quads
     simTrajectories(x,y,color_palette);
     SE = 0;
     for i = 1:N
-       SE = vx(i,:)*vx(i,:)'+vy(i,:)*vy(i,:)';
+       SE = SE + vx(i,:)*vx(i,:)'+vy(i,:)*vy(i,:)';
     end
     SpecificEnergy(N-1,1) = SE;
 %     disp("Computation Time [N = "+N+"]: " + double(simTime(N-1))/10^6 + " seconds");
