@@ -232,12 +232,12 @@ p2 = plot(10000,10000,'kp','MarkerSize',8);
 
 xlim([0,20]);
 ylim([0,20]);
-title(['Mueller Method for N = ',num2str(objects)])
+% title(['Mueller Method for N = ',num2str(objects)])
 xlabel('X [m]')
 ylabel('Y [m]')
 legend([p1,p2],'Start Point','End Point')
 hold off
-
+setFont();
 iterations = output.iterations
 
 toc
