@@ -4,7 +4,7 @@ close all
 % Conflict-free trajectories for quadrotors
 % Dietsche, Lee and Sudarsanan
 
-N_Quads = 5;       % Number of vehicles
+N_Quads = 4;       % Number of vehicles
 dStartEnd = 10;%20;    % Distance between start and end points for quadrotors
 simTime  = zeros(1,N_Quads-1);
 solnStat = cell(1,N_Quads-1);
@@ -12,7 +12,7 @@ solnTables = cell(1,N_Quads-1);
 
 % Rune single case
 SpecificEnergy = zeros(N_Quads-1,1);
-for N=2:N_Quads
+for N=3:N_Quads
 % % Run multiple cases
 % for N=2:N_Quads
     figure(N-1);
@@ -27,8 +27,8 @@ for N=2:N_Quads
     R = 1.0; % [m] Min. distance of aviodance
     h = 0.1; % [s] Sampling time
     tic
-    if N <=3
-        T = 5;
+    if N <=4
+        T = 3;
     else
         T = 5;%10;   % [s] Total flight time for each vehicle
     end
@@ -111,7 +111,7 @@ for N=2:N_Quads
                                                  'MarkerFaceColor',p_hand.Color);
             
     end
-    title("Initial trajectories in 2-D ["+N+" Quads]")
+%     title("Initial trajectories in 2-D ["+N+" Quads]")
     xlabel('x [m]')
     ylabel('y [m]')
     drawnow
@@ -250,9 +250,10 @@ for N=2:N_Quads
     start_hand = plot(10000,10000,'k^','MarkerSize',6);
     end_hand   = plot(10000,10000,'kp','MarkerSize',8);
     legend([start_hand,end_hand],{'Start Point','End Point'});
-    title("Conflict-free trajectories in 2-D, N = "+N+", R = "+R+" [m]")
-    xlabel('x [m]')
-    ylabel('y [m]')
+%     title("Conflict-free trajectories in 2-D, N = "+N+", R = "+R+" [m]")
+    setFont();
+    xlabel('X [m]')
+    ylabel('Y [m]')
     simTrajectories(x,y,color_palette);
     SE = 0;
     for i = 1:N
