@@ -132,7 +132,7 @@ for N=N_Quads
     
     % Plot the position bound
     plot_positionBoundary(p_min_x,p_max_x,p_min_y,p_max_y,p_min_z,p_max_z);
-    title("Initial trajectories in 3-D ["+N+" Quads]")
+%     title("Initial trajectories in 3-D ["+N+" Quads]")
     xlabel('x [m]')
     ylabel('y [m]')
     drawnow
