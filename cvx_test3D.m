@@ -4,7 +4,7 @@ close all
 % Conflict-free trajectories for quadrotors
 % Dietsche, Lee and Sudarsanan
 
-N_Quads = 3;       % Number of vehicles
+N_Quads = 5;       % Number of vehicles
 dStartEnd = 5;    % Distance between start and end points for quadrotors
 simTime  = zeros(1,N_Quads-1);
 solnStat = cell(1,N_Quads-1);
@@ -28,7 +28,7 @@ for N=N_Quads
     h = 0.1; % [s] Sampling time
     
     
-    T = 2;   % [s] Total flight time for each vehicle
+    T = 5;   % [s] Total flight time for each vehicle
     % Estimate flight time
 %     T = estimateFlightTime(dStartEnd,u_max); % Assumes distance traveled same for all quads
     K = ceil(T/h)+1;   % Number of time steps
@@ -301,7 +301,8 @@ for N=N_Quads
     end_hand   = plot(10000,10000,'kp','MarkerSize',8);
     legend([start_hand,end_hand],{'Start Point','End Point'});
 
-    title("Conflict-free trajectories in 3-D, N = "+N+", R = "+R+" [m]")
+%     title("Conflict-free trajectories in 3-D, N = "+N+", R = "+R+" [m]")
+    setFont();
     xlabel('x [m]')
     ylabel('y [m]')
 
