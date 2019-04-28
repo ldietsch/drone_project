@@ -2,7 +2,7 @@ function simTrajectories(Px,Py,color_palette)
     N = size(Px,1);
     K = size(Px,2);
     
-    movieName = ['2D Conflict Avoidance_',num2str(N),' Quads.avi'];
+    movieName = ['3D Race Course_',num2str(N),' Quads.avi'];
     plotMovie = VideoWriter(movieName); % Name it.
     plotMovie.FrameRate = 10; % How many frames per second.
     open(plotMovie);
